@@ -18,7 +18,7 @@ from scipy.io import loadmat
 
 import custompp
 from gsvd import gsvd
-from tikhonov_reg import get_l_rough
+from reg import get_l_rough
 
 
 km2m = 1000.0
