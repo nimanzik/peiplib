@@ -1,6 +1,7 @@
 import numpy as np
 from scipy import linalg as spla
 
+
 def diagk(X, k):
     """K-th matrix diagonal.
     This function returns the k-th diagonal of X except for 1-D arrays.
