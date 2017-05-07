@@ -24,7 +24,6 @@ from tikhonov_reg import get_l_rough
 km2m = 1000.0
 m2km = 0.001
 
-
 # -----------------------------------------------------------------------------
 
 vsp = loadmat('vsp.mat')
