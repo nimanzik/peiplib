@@ -6,23 +6,29 @@ from scipy.sparse import csr_matrix
 
 
 def lcurve_tikh_svd(U, s, d, npoints, alpha_min=None, alpha_max=None):
-    '''L-curve parameters for Tikhonov regularization.
+    '''L-curve parameters for Tikhonov standard-form regularization.
 
     Parameters
     ----------
     U: ndarray
         Matrix of data space basis vectors from the SVD.
     s: ndarray
-        Vector of singular values.
+        Vector of singular values from the SVD.
     d: ndarray
         The data vector.
+    npoints: int
+        Number of logarithmically spaced regularization parameters.
+    alpha_min: float
+        If specified, minimum of the regularization parameters range.
+    alpha_max:
+        If specified, maximum of the reqularization parameters range.
 
     Returns
     -------
     rho: ndarray
         Vector of residual norm ``||Gm-d||_2``.
     eta: ndarray
-        Vector of solution norm ``||m||_2`` or seminorm ``||Lm||_2``.
+        Vector of solution norm ``||m||_2``.
     reg_params: ndarray
         Vector of corresponding regularization parameters.
 
@@ -67,6 +73,42 @@ def lcurve_tikh_svd(U, s, d, npoints, alpha_min=None, alpha_max=None):
 
 
 def lcurve_tikh_gsvd(U, LAM, MU, d, npoints, alpha_min=None, alpha_max=None):
+    '''L-curve parameters for Tikhonov general-form regularization.
+
+    Parameters
+    ----------
+    If the system matrix G is m-by-n and the corresponding roughening matrix L
+    is p-by-n, then
+    U: ndarray
+        m-by-m Matrix of data space basis vectors from the GSVD.
+    LAM: ndarray
+        m-by-n matrix with diagonal entries that may be shifted from the main
+        diagonal, computed by the GSVD.
+    MU: ndarray
+        p-by-n diagonal matrix computed by the GSVD.
+    d: ndarray
+        The data vector.
+    npoints: int
+        Number of logarithmically spaced regularization parameters.
+    alpha_min: float
+        If specified, minimum of the regularization parameters range.
+    alpha_max:
+        If specified, maximum of the reqularization parameters range.
+
+    Returns
+    -------
+    rho: ndarray
+        Vector of residual norm ``||Gm-d||_2``.
+    eta: ndarray
+        Vector of solution seminorm ``||Lm||_2``.
+    reg_params: ndarray
+        Vector of corresponding regularization parameters.
+
+    .. seealso:
+        Hansen, P. C. (2001), The L-curve and its use in the numerical
+        treatment of inverse problems, in book: Computational Inverse Problems
+        in Electrocardiology, pp 119-142.
+    '''
     m, n = LAM.shape
     p, _ = MU.shape
 
@@ -100,7 +142,7 @@ def lcurve_corner(rho, eta, reg_params):
         The index of the value in `reg_params` with maximum curvature.
     kappa: ndarray
         Curvature values for each regularization parameter.
-    
+
     .. seealso:
         https://en.wikipedia.org/wiki/Circumscribed_circle#Triangle_centers_on_the_circumcircle_of_triangle_ABC
     '''

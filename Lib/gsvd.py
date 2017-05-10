@@ -119,7 +119,7 @@ def csd(Q1, Q2):
             S[:k, k:r] = 0
 
         S[k:n, k:r] = ST
-        C[:, j] = np.dot(C[:, j], VT)
+        C[:, j] = np.dot(C[:, j], VT)economy-sized
         V[:, i] = np.dot(V[:, i], UT)
         Z[:, j] = np.dot(Z[:, j], VT)
 
@@ -175,18 +175,18 @@ def csd(Q1, Q2):
     V, S = diagp(V, S, 0)
     S = np.real(S)
 
-    return (U, V, Z, np.diag(C), np.diag(S))
+    return (U, V, Z, C, S)
 
 
 def gsvd(A, B, full_matrices = True, compute_all = True):
     """Generalized Singular Value Decomposition.
     [U,V,X,C,S] = GSVD(A,B) returns unitary matrices U and V, a (usually)
     square matrix X, and nonnegative diagonal matrices C and S so that:
-    
+
         A = U*C*X'
         B = V*S*X'
         C'*C + S'*S = I
-    
+
     A and B must have the same number of columns, but may have different
     numbers of rows.  If A is m-by-p and B is n-by-p, then U is m-by-m, V is
     n-by-n and X is p-by-q where q = min(m+n,p).
@@ -211,7 +211,7 @@ def gsvd(A, B, full_matrices = True, compute_all = True):
             n = p
 
     Q, R = spla.qr(np.vstack([A, B]), mode='economic')
-    U, V, Z, c, s = csd(Q[0:m, :], Q[m:m+n, :])
+    U, V, Z, C, S = csd(Q[0:m, :], Q[m:m+n, :])
 
     if compute_all:
         # Full composition.
@@ -222,16 +222,18 @@ def gsvd(A, B, full_matrices = True, compute_all = True):
         if QB.size != 0:
             V = np.dot(QB, V)
 
-        return (U, V, X, c, s)
+        return (U, V, X, C, S)
 
     else:
         # Vector of generalized singular values.
         q = min(m+n, p)
         dum1 = np.zeros((q-m, 1), dtype=np.float)
-
         dum2 = diagk(C, max(0, q-m)).reshape(-1, 1)
-        dum3 = np.vstack([diagk(S, 0).reshape(-1, 1), np.zeros((q-n, 1))])
-        dum4 = dum2 / dum3
+        dumA = np.vstack([dum1, dum2])
 
-        sigma = np.vstack([dum1, dum4])
+        dum3 = diagk(S, 0).reshape(-1, 1)
+        dum4 = np.zeros((q-n, 1))
+        dumB = np.vstack([dum3, dum4])
+
+        sigma = dumA / dumB
         return sigma
