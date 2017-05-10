@@ -18,7 +18,7 @@ from scipy.io import loadmat
 
 import custompp
 from gsvd import gsvd
-from reg import get_l_rough
+from reg import get_reg_mat
 
 
 km2m = 1000.0
@@ -95,5 +95,9 @@ fig1.savefig('c4fmL2.pdf')
 
 
 # --- Apply first-order Tikhonov regularization ---
-L1 = get_l_rough(N, 1, full=True)
-U1, V1, X1, LAM1, MU1 = gsvd(G, L1)
+L1 = get_reg_mat(N, 1, full=True)
+U1, V1, X1, lam1, mu1 = gsvd(G, L1)
+
+
+# Apply the L curve criteria to the first-order regularization problem
+

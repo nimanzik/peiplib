@@ -66,6 +66,20 @@ def lcurve_tikh_svd(U, s, d, npoints, alpha_min=None, alpha_max=None):
     return (rho, eta, reg_params)
 
 
+def lcurve_tikh_gsvd(U, LAM, MU, d, npoints, alpha_min=None, alpha_max=None):
+    m, n = LAM.shape
+    p, _ = MU.shape
+
+    lam = np.diag(np.dot(LAM.T, LAM))**0.5
+    mu = np.diag(np.dot(MU.T, MU))**0.5
+    gamma = lam / mu
+
+    d_proj = np.dot(U.T, d)
+    dr = la.norm(d)**2 - la.norm(d_proj)**2
+
+    d_proj_scale = d_proj / lam
+
+
 def lcurve_corner(rho, eta, reg_params):
     '''Triangular/circumscribed circle simple approximation to curvature.
 
@@ -122,8 +136,9 @@ def lcurve_corner(rho, eta, reg_params):
     return (corner, icorner, kappa)
 
 
-def get_l_rough(n, d, full=True):
-    '''1-D differentiating matrix operator (roughening matrix `L`).
+def get_reg_mat(n, d, full=True):
+    '''1-D differentiating matrix (reffered to as regularization or roughening
+    matrix `L`).
     This function computes the discrete approximation `L` to the derivative
     operator of order `d` on a regular grid with `n` points, i.e. L is
     (n-d)-by-n.

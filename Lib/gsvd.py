@@ -175,7 +175,7 @@ def csd(Q1, Q2):
     V, S = diagp(V, S, 0)
     S = np.real(S)
 
-    return (U, V, Z, C, S)
+    return (U, V, Z, np.diag(C), np.diag(S))
 
 
 def gsvd(A, B, full_matrices = True, compute_all = True):
@@ -211,7 +211,7 @@ def gsvd(A, B, full_matrices = True, compute_all = True):
             n = p
 
     Q, R = spla.qr(np.vstack([A, B]), mode='economic')
-    U, V, Z, C, S = csd(Q[0:m, :], Q[m:m+n, :])
+    U, V, Z, c, s = csd(Q[0:m, :], Q[m:m+n, :])
 
     if compute_all:
         # Full composition.
@@ -222,7 +222,7 @@ def gsvd(A, B, full_matrices = True, compute_all = True):
         if QB.size != 0:
             V = np.dot(QB, V)
 
-        return (U, V, X, C, S)
+        return (U, V, X, c, s)
 
     else:
         # Vector of generalized singular values.
