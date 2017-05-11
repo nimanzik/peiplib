@@ -57,7 +57,7 @@ def shaw(m, n):
 
 def tsvd_solution(U, s, V, nkeep, d):
     '''Truncated singular value decomposition (TSVD) solution.
-    
+
     Parameters
     ----------
     U: ndarray
@@ -68,7 +68,7 @@ def tsvd_solution(U, s, V, nkeep, d):
         Matrix of model space basis vectors from the SVD.
     nkeep: int
         Maximum number of singular values used (p). Truncate SVD to `nkeep`.
-        
+
     Returns
     -------
     m: ndarray

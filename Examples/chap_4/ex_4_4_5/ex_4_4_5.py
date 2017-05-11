@@ -18,7 +18,7 @@ from scipy.io import loadmat
 
 import custompp
 from gsvd import gsvd
-from reg import get_reg_mat
+from reg import get_reg_mat, lcurve_corner, lcurve_tikh_gsvd
 
 
 km2m = 1000.0
@@ -68,6 +68,7 @@ ax0.plot(depth, strue*1000.0)
 ax0.set_xlabel('Depth [m]')
 ax0.set_ylabel('True slowness [s/km]')
 fig0.savefig('c4fvspmod.pdf')
+plt.close()
 
 
 # --- Compute the least-squares solution of G ---
@@ -92,12 +93,50 @@ ax1.plot(dobs2, (m_ls-conf95)*1000, '--', color=color, drawstyle='steps')
 ax1.set_xlabel('Depth [m]')
 ax1.set_ylabel('Slowness [s/km]')
 fig1.savefig('c4fmL2.pdf')
+plt.close()
 
 
 # --- Apply first-order Tikhonov regularization ---
+
 L1 = get_reg_mat(N, 1, full=True)
-U1, V1, X1, lam1, mu1 = gsvd(G, L1)
+U1, V1, X1, LAM1, MU1 = gsvd(G, L1)
 
 
 # Apply the L curve criteria to the first-order regularization problem
 
+rho1, eta1, reg_params1 = lcurve_tikh_gsvd(U1, X1, LAM1, MU1, t, G, L1, 1200)
+alpha_tikh1, icorner1, _ =  lcurve_corner(rho1, eta1, reg_params1)
+rho_corner1 = rho1[icorner1]
+eta_corner1 = eta1[icorner1]
+
+print('1st-order regularization parameter is:', alpha_tikh1)
+
+
+# Get the desired model.
+dum1 = np.dot(G.T, G)
+dum2 = alpha_tikh1**2 * np.dot(L1.T, L1)
+Ghash = np.dot(la.inv(dum1 + dum2), G.T)
+
+m1 = np.dot(Ghash, t)
+
+
+# Plot 1sr-order L-curve and add the corner marker.
+
+fig2, ax2 = plt.subplots(1, 1)
+ax2.loglog(rho1, eta1)
+ax2.loglog(rho_corner1, eta_corner1, 'ro', mfc='None', ms=12, mew=1.5)
+ax2.set_xlabel(r'Residual norm $\Vert\textbf{Gm}-\textbf{d}\Vert_{2}$')
+ax2.set_ylabel(r'Solution seminorm $\Vert\textbf{Lm}\Vert_{2}$')
+fig2.savefig('c4flcurve1.pdf')
+plt.close()
+
+
+# Plot the first-order recovered model and the true model.
+
+fig3, ax3 = plt.subplots(1, 1)
+ax3.plot(dobs2, m1*1000, '-', drawstyle='steps')
+ax3.plot(depth, strue*1000.0, '--')
+ax3.set_xlabel('Depth [m]')
+ax3.set_ylabel('Slowness [s/km]')
+fig3.savefig('c4fmtikh1.pdf')
+plt.close()

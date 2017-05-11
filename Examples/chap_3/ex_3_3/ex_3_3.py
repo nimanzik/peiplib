@@ -231,7 +231,7 @@ plt.close()
 
 # -----------------------------------------------------------------------------
 
-# --- Plot singular values of G for n=6 --- 
+# --- Plot singular values of G for n=6 ---
 M3, N3 = 6, 6
 _, _, G3 = shaw(M3, N3)
 

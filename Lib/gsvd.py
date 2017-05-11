@@ -119,7 +119,7 @@ def csd(Q1, Q2):
             S[:k, k:r] = 0
 
         S[k:n, k:r] = ST
-        C[:, j] = np.dot(C[:, j], VT)economy-sized
+        C[:, j] = np.dot(C[:, j], VT)
         V[:, i] = np.dot(V[:, i], UT)
         Z[:, j] = np.dot(Z[:, j], VT)
 
@@ -178,7 +178,7 @@ def csd(Q1, Q2):
     return (U, V, Z, C, S)
 
 
-def gsvd(A, B, full_matrices = True, compute_all = True):
+def gsvd(A, B, full_matrices=True, compute_all=True):
     """Generalized Singular Value Decomposition.
     [U,V,X,C,S] = GSVD(A,B) returns unitary matrices U and V, a (usually)
     square matrix X, and nonnegative diagonal matrices C and S so that:

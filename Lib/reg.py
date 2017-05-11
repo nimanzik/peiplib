@@ -40,6 +40,9 @@ def lcurve_tikh_svd(U, s, d, npoints, alpha_min=None, alpha_max=None):
     m, n = U.shape
     p = s.size
 
+    if len(d.shape) == 2:
+        d = d.reshape(d.size,)
+
     # Projection, and residual error introduced by the projection
     d_proj = np.dot(U.T, d)
     dr = la.norm(d)**2 - la.norm(d_proj)**2
@@ -54,8 +57,8 @@ def lcurve_tikh_svd(U, s, d, npoints, alpha_min=None, alpha_max=None):
     rho = np.zeros_like(eta)
 
     smin_ratio = 16 * np.finfo(np.float).eps
-    start = alpha_max or s[0]
-    stop = alpha_min or max(s[-1], s[0]*smin_ratio)
+    start = alpha_min or max(s[-1], s[0]*smin_ratio)
+    stop = alpha_max or s[0]
     reg_params = np.linspace(np.log10(start), np.log10(stop), npoints)
     reg_params = 10**reg_params
 
@@ -123,20 +126,68 @@ def lcurve_tikh_gsvd(U, X, LAM, MU, d, G, L, npoints, alpha_min=None,
     m, n = G.shape
     p = la.matrix_rank(L)
 
-    lam = np.diag(np.dot(LAM.T, LAM))**0.5
-    mu = np.diag(np.dot(MU.T, MU))**0.5
-    gamma = lam / mu
+    if len(d.shape) == 2:
+        d = d.reshape(d.size,)
+
+    lams = np.sqrt(np.diag(np.dot(LAM.T, LAM)))
+    mus = np.sqrt(np.diag(np.dot(MU.T, MU)))
+    gammas = lams / mus
+    Y = np.transpose(la.inv(X))
 
     # Initialization
-    m = np.zeros((n, npoints), dtype=np.float)
+    mod = np.zeros((n, npoints), dtype=np.float)
     eta = np.zeros(npoints, dtype=np.float)
     rho = np.zeros_like(eta)
 
-    smin_ratio = 16 * np.finfo(np.float).eps
-    start = alpha_min or max(gamma[0], gamma[-1]*smin_ratio)
-    stop = alpha_max or gamma[p]
+    if alpha_min and alpha_max:
+        start = alpha_min
+        stop = alpha_max
+    else:
+        gmin_ratio = 16 * np.finfo(np.float).eps
+        if m <= n:
+            # The under-determined or square case.
+            k = n - m
+            i1, i2 = sorted((k, p-1))
+            start = max(gammas[i1], gammas[i2]*gmin_ratio)
+            stop = gammas[i2]
+        else:
+            # The over-determined case.
+            start = max(gammas[0], gammas[p-1]*gmin_ratio)
+            stop = gammas[p-1]
+
     reg_params = np.linspace(np.log10(start), np.log10(stop), npoints)
     reg_params = 10**reg_params
+
+
+    if m > n:
+        k = 0
+    else:
+        k = n - m
+
+    ngam = gammas.size
+
+    # Solve for each solution.
+    for ireg in range(npoints):
+
+        # Series filter coeficients for this regularization parameter.
+        f = np.zeros(ngam, dtype=np.float)
+        for igam in range(ngam):
+            gam = gammas[igam]
+
+            if np.isinf(gam) or np.isnan(gam):
+                f[igam] = 1
+            elif (lams[igam] == 0) and (mus[j] == 0):
+                f[igam] = 0
+            else:
+                f[igam] = gam**2 / (gam**2 + reg_params[ireg]**2)
+
+            # Build the solution (see Aster er al. (2011), eq. (4.49)).
+            mod[:, ireg] += f[igam] * (np.dot(U[:, igam-k].T, d)/lams[igam]) * Y[:, igam]
+
+        rho[ireg] = la.norm(np.dot(G, mod[:, ireg]) - d)
+        eta[ireg] = la.norm(np.dot(L, mod[:, ireg]))
+
+    return (rho, eta, reg_params)
 
 
 def lcurve_corner(rho, eta, reg_params):
