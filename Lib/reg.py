@@ -72,22 +72,34 @@ def lcurve_tikh_svd(U, s, d, npoints, alpha_min=None, alpha_max=None):
     return (rho, eta, reg_params)
 
 
-def lcurve_tikh_gsvd(U, LAM, MU, d, npoints, alpha_min=None, alpha_max=None):
-    '''L-curve parameters for Tikhonov general-form regularization.
+def lcurve_tikh_gsvd(U, X, LAM, MU, d, G, L, npoints, alpha_min=None,
+        alpha_max=None):
+    '''
+    L-curve parameters for Tikhonov general-form regularization.
+
+    If the system matrix G is m-by-n and the corresponding roughening matrix L
+    is p-by-n, then the generalized singular value decomposition (GSVD) of
+    A=[G; L] is:
+
+        U, V, X, LAM, MU = gsvd(G, L)
 
     Parameters
     ----------
-    If the system matrix G is m-by-n and the corresponding roughening matrix L
-    is p-by-n, then
     U: ndarray
-        m-by-m Matrix of data space basis vectors from the GSVD.
+        m-by-m matrix of data space basis vectors from the GSVD.
+    X: ndarray
+        n-by-n nonsingular matrix computed by the GSVD.
     LAM: ndarray
-        m-by-n matrix with diagonal entries that may be shifted from the main
-        diagonal, computed by the GSVD.
+        m-by-n matrix, computed by the GSVD, with diagonal entries that may be
+        shifted from the main diagonal.
     MU: ndarray
         p-by-n diagonal matrix computed by the GSVD.
     d: ndarray
         The data vector.
+    G: ndarray
+        The system matrix.
+    L: ndarray
+        The roughening matrix.
     npoints: int
         Number of logarithmically spaced regularization parameters.
     alpha_min: float
@@ -105,21 +117,26 @@ def lcurve_tikh_gsvd(U, LAM, MU, d, npoints, alpha_min=None, alpha_max=None):
         Vector of corresponding regularization parameters.
 
     .. seealso:
-        Hansen, P. C. (2001), The L-curve and its use in the numerical
-        treatment of inverse problems, in book: Computational Inverse Problems
-        in Electrocardiology, pp 119-142.
+        Aster, R., Borchers, B. & Thurber, C. (2011), `Parameter Estimation and
+        Inverse Problems`, Elsevier, pp 103-107.
     '''
-    m, n = LAM.shape
-    p, _ = MU.shape
+    m, n = G.shape
+    p = la.matrix_rank(L)
 
     lam = np.diag(np.dot(LAM.T, LAM))**0.5
     mu = np.diag(np.dot(MU.T, MU))**0.5
     gamma = lam / mu
 
-    d_proj = np.dot(U.T, d)
-    dr = la.norm(d)**2 - la.norm(d_proj)**2
+    # Initialization
+    m = np.zeros((n, npoints), dtype=np.float)
+    eta = np.zeros(npoints, dtype=np.float)
+    rho = np.zeros_like(eta)
 
-    d_proj_scale = d_proj / lam
+    smin_ratio = 16 * np.finfo(np.float).eps
+    start = alpha_min or max(gamma[0], gamma[-1]*smin_ratio)
+    stop = alpha_max or gamma[p]
+    reg_params = np.linspace(np.log10(start), np.log10(stop), npoints)
+    reg_params = 10**reg_params
 
 
 def lcurve_corner(rho, eta, reg_params):
