@@ -105,9 +105,15 @@ U1, V1, X1, LAM1, MU1 = gsvd(G, L1)
 # Apply the L curve criteria to the first-order regularization problem
 
 rho1, eta1, reg_params1 = lcurve_tikh_gsvd(U1, X1, LAM1, MU1, t, G, L1, 1200)
-alpha_tikh1, icorner1, _ =  lcurve_corner(rho1, eta1, reg_params1)
-rho_corner1 = rho1[icorner1]
-eta_corner1 = eta1[icorner1]
+
+
+# Plot 1sr-order L-curve and find its corner.
+
+fig2, ax2 = plt.subplots(1, 1)
+alpha_tikh1, rho_corn1, eta_corn1 = lcurve_corner(rho1, eta1, reg_params1, ax2)
+
+fig2.savefig('c4flcurve1.pdf')
+plt.close()
 
 print('1st-order regularization parameter is:', alpha_tikh1)
 
@@ -116,27 +122,60 @@ print('1st-order regularization parameter is:', alpha_tikh1)
 dum1 = np.dot(G.T, G)
 dum2 = alpha_tikh1**2 * np.dot(L1.T, L1)
 Ghash = np.dot(la.inv(dum1 + dum2), G.T)
-
 m1 = np.dot(Ghash, t)
-
-
-# Plot 1sr-order L-curve and add the corner marker.
-
-fig2, ax2 = plt.subplots(1, 1)
-ax2.loglog(rho1, eta1)
-ax2.loglog(rho_corner1, eta_corner1, 'ro', mfc='None', ms=12, mew=1.5)
-ax2.set_xlabel(r'Residual norm $\Vert\textbf{Gm}-\textbf{d}\Vert_{2}$')
-ax2.set_ylabel(r'Solution seminorm $\Vert\textbf{Lm}\Vert_{2}$')
-fig2.savefig('c4flcurve1.pdf')
-plt.close()
 
 
 # Plot the first-order recovered model and the true model.
 
 fig3, ax3 = plt.subplots(1, 1)
-ax3.plot(dobs2, m1*1000, '-', drawstyle='steps')
-ax3.plot(depth, strue*1000.0, '--')
+ax3.plot(depth, strue*1000.0, '--', label='True model')
+ax3.plot(dobs2, m1*1000, '-', drawstyle='steps',
+        label=r'Recovered model, 1$^{st}$ order reg.')
 ax3.set_xlabel('Depth [m]')
 ax3.set_ylabel('Slowness [s/km]')
+ax3.legend()
 fig3.savefig('c4fmtikh1.pdf')
+plt.close()
+
+
+
+# --- Apply second-order Tikhonov regularization ---
+
+L2 = get_reg_mat(N, 2, full=True)
+U2, V2, X2, LAM2, MU2 = gsvd(G, L2)
+
+
+# Apply the L curve criteria to the first-order regularization problem
+
+rho2, eta2, reg_params2 = lcurve_tikh_gsvd(U2, X2, LAM2, MU2, t, G, L2, 1200)
+
+
+# Plot 1sr-order L-curve and find its corner.
+
+fig4, ax4 = plt.subplots(1, 1)
+alpha_tikh2, rho_corn2, eta_corn2 = lcurve_corner(rho2, eta2, reg_params2, ax4)
+
+fig4.savefig('c4flcurve2.pdf')
+plt.close()
+
+print('2nd-order regularization parameter is:', alpha_tikh2)
+
+
+# Get the desired model.
+dum1 = np.dot(G.T, G)
+dum2 = alpha_tikh2**2 * np.dot(L2.T, L2)
+Ghash = np.dot(la.inv(dum1 + dum2), G.T)
+m2 = np.dot(Ghash, t)
+
+
+# Plot the first-order recovered model and the true model.
+
+fig5, ax5 = plt.subplots(1, 1)
+ax5.plot(depth, strue*1000.0, '--', label='True model')
+ax5.plot(dobs2, m2*1000, '-', drawstyle='steps',
+        label=r'Recovered model, 2$^{nd}$ order reg.')
+ax5.set_xlabel('Depth [m]')
+ax5.set_ylabel('Slowness [s/km]')
+ax5.legend()
+fig5.savefig('c4fmtikh2.pdf')
 plt.close()

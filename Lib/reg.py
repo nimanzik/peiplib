@@ -134,11 +134,6 @@ def lcurve_tikh_gsvd(U, X, LAM, MU, d, G, L, npoints, alpha_min=None,
     gammas = lams / mus
     Y = np.transpose(la.inv(X))
 
-    # Initialization
-    mod = np.zeros((n, npoints), dtype=np.float)
-    eta = np.zeros(npoints, dtype=np.float)
-    rho = np.zeros_like(eta)
-
     if alpha_min and alpha_max:
         start = alpha_min
         stop = alpha_max
@@ -164,14 +159,16 @@ def lcurve_tikh_gsvd(U, X, LAM, MU, d, G, L, npoints, alpha_min=None,
     else:
         k = n - m
 
-    ngam = gammas.size
+    # Initialization.
+    eta = np.zeros(npoints, dtype=np.float)
+    rho = np.zeros_like(eta)
 
     # Solve for each solution.
     for ireg in range(npoints):
 
         # Series filter coeficients for this regularization parameter.
-        f = np.zeros(ngam, dtype=np.float)
-        for igam in range(ngam):
+        f = np.zeros(n, dtype=np.float)
+        for igam in range(k, n):
             gam = gammas[igam]
 
             if np.isinf(gam) or np.isnan(gam):
@@ -181,16 +178,17 @@ def lcurve_tikh_gsvd(U, X, LAM, MU, d, G, L, npoints, alpha_min=None,
             else:
                 f[igam] = gam**2 / (gam**2 + reg_params[ireg]**2)
 
-            # Build the solution (see Aster er al. (2011), eq. (4.49)).
-            mod[:, ireg] += f[igam] * (np.dot(U[:, igam-k].T, d)/lams[igam]) * Y[:, igam]
-
-        rho[ireg] = la.norm(np.dot(G, mod[:, ireg]) - d)
-        eta[ireg] = la.norm(np.dot(L, mod[:, ireg]))
+        # Build the solution (see Aster er al. (2011), eq. (4.49) & (4.56)).
+        d_proj_scale = np.dot(U[:, :n-k].T, d) / lams[k:n]
+        F = np.diag(f)
+        mod = np.dot(Y[:, k:], np.dot(F, d_proj_scale))
+        rho[ireg] = la.norm(np.dot(G, mod) - d)
+        eta[ireg] = la.norm(np.dot(L, mod))
 
     return (rho, eta, reg_params)
 
 
-def lcurve_corner(rho, eta, reg_params):
+def lcurve_corner(rho, eta, reg_params, ax=None):
     '''Triangular/circumscribed circle simple approximation to curvature.
 
     Parameters
@@ -201,15 +199,17 @@ def lcurve_corner(rho, eta, reg_params):
         Vector of solution norm ``||m||_2`` or seminorm ``||Lm||_2``
     reg_params: ndarray
         Vector of corresponding regularization parameters.
+    ax: :py:class:``matplotlib.axes._subplots.AxesSubplot`` instance
+        If provided, the L-curve and corner are plotted.
 
     Returns
     -------
-    corner: float
+    reg_c: float
         The value of `reg_params` with maximum curvature.
-    icorner: int
-        The index of the value in `reg_params` with maximum curvature.
-    kappa: ndarray
-        Curvature values for each regularization parameter.
+    rho_c: float
+        The residual norm corresponding to `reg_c`.
+    eta_c: float
+        The solution norm/seminorm corresponding to `reg_c`.
 
     .. seealso:
         https://en.wikipedia.org/wiki/Circumscribed_circle#Triangle_centers_on_the_circumcircle_of_triangle_ABC
@@ -241,9 +241,23 @@ def lcurve_corner(rho, eta, reg_params):
     # curvature is zero.
     kappa = np.hstack((0, 1.0/R, 0))
     icorner = np.argmax(abs(kappa[1:-1]))
-    corner = reg_params[icorner]
+    reg_c = reg_params[icorner]
+    rho_c = rho[icorner]
+    eta_c = eta[icorner]
 
-    return (corner, icorner, kappa)
+    if ax:
+        ax.loglog(rho, eta)
+        l, r = ax.get_xbound()
+        b, t = ax.get_ybound()
+        ax.loglog([l, rho_c, rho_c], [eta_c, eta_c, b], 'r:')
+        ax.loglog(rho_c, eta_c, 'ro', mfc='None', ms=12, mew=1.5)
+
+        ax.set_xlim(l, r)
+        ax.set_ylim(b, t)
+        ax.set_xlabel(r'Residual norm $\Vert\textbf{Gm}-\textbf{d}\Vert_{2}$')
+        ax.set_ylabel(r'Solution seminorm $\Vert\textbf{Lm}\Vert_{2}$')
+
+    return (reg_c, rho_c, eta_c)
 
 
 def get_reg_mat(n, d, full=True):
