@@ -17,9 +17,9 @@ from numpy import linalg as la
 from scipy.interpolate import interp1d
 from scipy.sparse.linalg import lsqr
 
-import custompp
-from reg import lcurve_corner, lcurve_tikh_svd
-from util import get_cbar_axes, picard, shaw
+from peiplib import custompp
+from peiplib.reg import lcurve_corner, lcurve_tikh_svd
+from peiplib.util import get_cbar_axes, picard, shaw
 
 
 pi = np.pi

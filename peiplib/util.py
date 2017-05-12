@@ -83,7 +83,7 @@ def get_svd_solution(U, s, V, d, nkeep=None):
     Vp = V[:, 0:p]
     Sp = np.diag(s[0:p])
     Gdagger = np.dot(Vp, np.dot(la.inv(Sp), Up.T))
-    m = np.dot(Gdagger, d, dtype=np.float)
+    m = np.dot(Gdagger, d)
     return m
 
 
@@ -109,7 +109,7 @@ def get_gsvd_solution(G, L, alpha, d):
     dum1 = np.dot(G.T, G)
     dum2 = alpha**2 * np.dot(L.T, L)
     Ghash = np.dot(la.inv(dum1 + dum2), G.T)
-    m = np.dot(Ghash, d, dtype=np.float)
+    m = np.dot(Ghash, d)
     return m
 
 

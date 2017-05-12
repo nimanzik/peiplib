@@ -17,9 +17,9 @@ from numpy import linalg as la
 from scipy.io import loadmat
 
 from peiplib import custompp
-from peiplib.gsvd import gsvd
-from peiplib.reg import get_reg_mat, lcurve_corner, lcurve_tikh_gsvd
-from peiplib.util import get_cbar_axes
+from peiplib.linalg import gsvd
+from peiplib.reg import get_rough_mat, lcurve_corner, lcurve_tikh_gsvd
+from peiplib.util import get_cbar_axes, get_gsvd_solution
 
 
 km2m = 1000.0
@@ -99,7 +99,7 @@ plt.close()
 
 # --- Apply first-order Tikhonov regularization ---
 
-L1 = get_reg_mat(N, 1, full=True)
+L1 = get_rough_mat(N, 1, full=True)
 U1, V1, X1, LAM1, MU1 = gsvd(G, L1)
 
 
@@ -125,10 +125,7 @@ print('1st-order regularization parameter is:', alpha_tikh1)
 
 
 # Get the desired model.
-dum1 = np.dot(G.T, G)
-dum2 = alpha_tikh1**2 * np.dot(L1.T, L1)
-Ghash = np.dot(la.inv(dum1 + dum2), G.T)
-m1 = np.dot(Ghash, t)
+m1 = get_gsvd_solution(G, L1, alpha_tikh1, t)
 
 
 # Plot the first-order recovered model and the true model.
@@ -147,7 +144,7 @@ plt.close()
 
 # --- Apply second-order Tikhonov regularization ---
 
-L2 = get_reg_mat(N, 2, full=True)
+L2 = get_rough_mat(N, 2, full=True)
 U2, V2, X2, LAM2, MU2 = gsvd(G, L2)
 
 
@@ -173,10 +170,7 @@ print('2nd-order regularization parameter is:', alpha_tikh2)
 
 
 # Get the desired model.
-dum1 = np.dot(G.T, G)
-dum2 = alpha_tikh2**2 * np.dot(L2.T, L2)
-Ghash = np.dot(la.inv(dum1 + dum2), G.T)
-m2 = np.dot(Ghash, t)
+m2 = get_gsvd_solution(G, L2, alpha_tikh2, t)
 
 
 # Plot the first-order recovered model and the true model.
