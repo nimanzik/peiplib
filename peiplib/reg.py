@@ -100,15 +100,15 @@ def lcurve_tikh_gsvd(U, X, LAM, MU, d, G, L, npoints, alpha_min=None,
     d: ndarray
         The data vector.
     G: ndarray
-        The system matrix.
+        The system matrix (forward operator or design matrix).
     L: ndarray
         The roughening matrix.
     npoints: int
         Number of logarithmically spaced regularization parameters.
-    alpha_min: float
-        If specified, minimum of the regularization parameters range.
-    alpha_max:
-        If specified, maximum of the reqularization parameters range.
+    alpha_min: float (optional)
+        Minimum of the regularization parameters range.
+    alpha_max: float (optional)
+        Maximum of the reqularization parameters range.
 
     Returns
     -------
@@ -188,7 +188,29 @@ def lcurve_tikh_gsvd(U, X, LAM, MU, d, G, L, npoints, alpha_min=None,
     return (rho, eta, reg_params)
 
 
-def lcurve_corner(rho, eta, reg_params, ax=None):
+def plot_lcurve(rho, eta, ax, flag=0):
+    '''Plot the L-curve (trade-off curve).
+
+    Parameters
+    ----------
+    rho: ndarray
+        Vector of residual norm ``||Gm-d||_2``.
+    eta: ndarray
+        Vector of solution norm ``||m||_2`` or seminorm ``||LM||_2``.
+    ax: :py:class:``matplotlib.axes._subplots.AxesSubplot`` instance
+        Set default axes instance.
+    flag: int
+        Set to 0 (default) for solution norm or 1 for solution seminorm.
+    '''
+    ax.loglog(rho, eta)
+    ax.set_xlabel(r'Residual norm $\Vert\textbf{Gm}-\textbf{d}\Vert_{2}$')
+    if flag == 0:
+        ax.set_ylabel(r'Solution norm $\Vert\textbf{m}\Vert_{2}$')
+    else:
+        ax.set_ylabel(r'Solution seminorm $\Vert\textbf{Lm}\Vert_{2}$')
+
+
+def lcurve_corner(rho, eta, reg_params, ax=None, flag=0):
     '''Triangular/circumscribed circle simple approximation to curvature.
 
     Parameters
@@ -201,6 +223,9 @@ def lcurve_corner(rho, eta, reg_params, ax=None):
         Vector of corresponding regularization parameters.
     ax: :py:class:``matplotlib.axes._subplots.AxesSubplot`` instance
         If provided, the L-curve and corner are plotted.
+    flag: int
+        Set to 0 (default) for solution norm or 1 for solution seminorm. Used
+        if plotting L-curve is requested.
 
     Returns
     -------
@@ -246,22 +271,21 @@ def lcurve_corner(rho, eta, reg_params, ax=None):
     eta_c = eta[icorner]
 
     if ax:
-        ax.loglog(rho, eta)
+        plot_lcurve(rho, eta, ax=ax, flag=flag)
         l, r = ax.get_xbound()
         b, t = ax.get_ybound()
         ax.loglog([l, rho_c, rho_c], [eta_c, eta_c, b], 'r:')
         ax.loglog(rho_c, eta_c, 'ro', mfc='None', ms=12, mew=1.5)
-
+        ax.text(1.1*rho_c, 1.1*eta_c, r'$\alpha=%.4f$' % reg_c)
         ax.set_xlim(l, r)
         ax.set_ylim(b, t)
-        ax.set_xlabel(r'Residual norm $\Vert\textbf{Gm}-\textbf{d}\Vert_{2}$')
-        ax.set_ylabel(r'Solution seminorm $\Vert\textbf{Lm}\Vert_{2}$')
 
     return (reg_c, rho_c, eta_c)
 
 
-def get_reg_mat(n, d, full=True):
-    '''1-D differentiating matrix (reffered to as regularization or roughening
+def get_rough_mat(n, d, full=True):
+    '''
+    1-D differentiating matrix (reffered to as regularization or roughening
     matrix `L`).
     This function computes the discrete approximation `L` to the derivative
     operator of order `d` on a regular grid with `n` points, i.e. L is

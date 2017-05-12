@@ -55,8 +55,9 @@ def shaw(m, n):
     return (gamma, theta, G)
 
 
-def tsvd_solution(U, s, V, nkeep, d):
-    '''Truncated singular value decomposition (TSVD) solution.
+def get_svd_solution(U, s, V, d, nkeep=None):
+    '''
+    Standard or truncated singular value decomposition (SVD or TSVD) solution.
 
     Parameters
     ----------
@@ -66,21 +67,49 @@ def tsvd_solution(U, s, V, nkeep, d):
         Vector of singular values.
     V: ndarray
         Matrix of model space basis vectors from the SVD.
-    nkeep: int
-        Maximum number of singular values used (p). Truncate SVD to `nkeep`.
+    d: ndarray
+        The data vector.
+    nkeep: int (optional)
+        Maximum number of singular values used (p). If provided, truncates SVD
+        to `nkeep` (TSVD solution).
 
     Returns
     -------
     m: ndarray
-        The truncated SVD solution vector.
+        The SVD or TSVD solution vector.
     '''
-    Up = U[:, 0:nkeep]
-    Vp = V[:, 0:nkeep]
-    Sp = np.diag(s[0:nkeep])
-
-    Sp_inv = la.inv(Sp)
-    Gdagger = np.dot(Vp, np.dot(Sp_inv, Up.T))
+    p = nkeep or s.size
+    Up = U[:, 0:p]
+    Vp = V[:, 0:p]
+    Sp = np.diag(s[0:p])
+    Gdagger = np.dot(Vp, np.dot(la.inv(Sp), Up.T))
     m = np.dot(Gdagger, d, dtype=np.float)
+    return m
+
+
+def get_gsvd_solution(G, L, alpha, d):
+    '''Generalized singular value decomposition (GSVD) solution.
+
+    Parameters
+    ----------
+    G: ndarray
+        The system matrix (forward operator or design matrix).
+    L: ndarray
+        The roughening matrix.
+    alpha: float
+        The reqularization parameter.
+    d: ndarray
+        The data vector.
+
+    Returns
+    -------
+    m: ndarray
+        The GSVD solution vector (regularization solution).
+    '''
+    dum1 = np.dot(G.T, G)
+    dum2 = alpha**2 * np.dot(L.T, L)
+    Ghash = np.dot(la.inv(dum1 + dum2), G.T)
+    m = np.dot(Ghash, d, dtype=np.float)
     return m
 
 
@@ -96,7 +125,7 @@ def picard(U, s, d, ax):
     d: 1-D array
         The data vector.
     ax: :py:class:``matplotlib.axes._subplots.AxesSubplot`` instance
-        set default axes instance.
+        Set default axes instance.
     '''
     k = s.size
     fcoef = np.zeros(k, dtype=np.float)
