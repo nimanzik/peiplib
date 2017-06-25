@@ -43,6 +43,7 @@ class MatrixColumnMismatch(Exception):
 
 def csd(Q1, Q2):
     """Cosine-Sine Decomposition.
+
     Given Q1 and Q2 such that Q1'*Q1 + Q2'*Q2 = I, the C-S Decomposition is a
     joint factorization of the form
         Q1 = U*C*Z' and Q2=V*S*Z'
@@ -180,6 +181,7 @@ def csd(Q1, Q2):
 
 def gsvd(A, B, full_matrices=True, compute_all=True):
     """Generalized Singular Value Decomposition.
+
     [U,V,X,C,S] = GSVD(A,B) returns unitary matrices U and V, a (usually)
     square matrix X, and nonnegative diagonal matrices C and S so that:
 

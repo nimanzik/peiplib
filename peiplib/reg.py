@@ -6,37 +6,40 @@ from scipy.sparse import csr_matrix
 
 
 def lcurve_tikh_svd(U, s, d, npoints, alpha_min=None, alpha_max=None):
-    '''L-curve parameters for Tikhonov standard-form regularization.
+    '''
+    L-curve parameters for Tikhonov standard-form regularization.
 
     Parameters
     ----------
-    U: ndarray
+    U : array_like
         Matrix of data space basis vectors from the SVD.
-    s: ndarray
+    s : array_like
         Vector of singular values from the SVD.
-    d: ndarray
+    d : array_like
         The data vector.
-    npoints: int
+    npoints : int
         Number of logarithmically spaced regularization parameters.
-    alpha_min: float
+    alpha_min : float
         If specified, minimum of the regularization parameters range.
-    alpha_max:
+    alpha_max :
         If specified, maximum of the reqularization parameters range.
 
     Returns
     -------
-    rho: ndarray
-        Vector of residual norm ``||Gm-d||_2``.
-    eta: ndarray
-        Vector of solution norm ``||m||_2``.
-    reg_params: ndarray
+    rho : array_like
+        Vector of residual norm `||Gm-d||_2`.
+    eta : array_like
+        Vector of solution norm `||m||_2`.
+    reg_params : array_like
         Vector of corresponding regularization parameters.
 
-    .. seealso:
-        Hansen, P. C. (2001), The L-curve and its use in the numerical
-        treatment of inverse problems, in book: Computational Inverse Problems
-        in Electrocardiology, pp 119-142.
+    References
+    ----------
+    .. [1] Hansen, P. C. (2001), The L-curve and its use in the
+       numerical treatment of inverse problems, in book: Computational
+       Inverse Problems in Electrocardiology, pp 119-142.
     '''
+
     m, n = U.shape
     p = s.size
 
@@ -80,49 +83,51 @@ def lcurve_tikh_gsvd(U, X, LAM, MU, d, G, L, npoints, alpha_min=None,
     '''
     L-curve parameters for Tikhonov general-form regularization.
 
-    If the system matrix G is m-by-n and the corresponding roughening matrix L
-    is p-by-n, then the generalized singular value decomposition (GSVD) of
-    A=[G; L] is:
+    If the system matrix ``G`` is m-by-n and the corresponding
+    roughening matrix ``L`` is p-by-n, then the generalized singular
+    value decomposition (GSVD) of ``A=[G; L]`` is:
 
         U, V, X, LAM, MU = gsvd(G, L)
 
     Parameters
     ----------
-    U: ndarray
+    U : array_like
         m-by-m matrix of data space basis vectors from the GSVD.
-    X: ndarray
+    X : array_like
         n-by-n nonsingular matrix computed by the GSVD.
-    LAM: ndarray
-        m-by-n matrix, computed by the GSVD, with diagonal entries that may be
-        shifted from the main diagonal.
-    MU: ndarray
+    LAM : array_like
+        m-by-n matrix, computed by the GSVD, with diagonal entries that
+        may be shifted from the main diagonal.
+    MU : array_like
         p-by-n diagonal matrix computed by the GSVD.
-    d: ndarray
+    d : array_like
         The data vector.
-    G: ndarray
+    G : array_like
         The system matrix (forward operator or design matrix).
-    L: ndarray
+    L : array_like
         The roughening matrix.
-    npoints: int
+    npoints : int
         Number of logarithmically spaced regularization parameters.
-    alpha_min: float (optional)
+    alpha_min : float (optional)
         Minimum of the regularization parameters range.
-    alpha_max: float (optional)
+    alpha_max : float (optional)
         Maximum of the reqularization parameters range.
 
     Returns
     -------
-    rho: ndarray
-        Vector of residual norm ``||Gm-d||_2``.
-    eta: ndarray
-        Vector of solution seminorm ``||Lm||_2``.
-    reg_params: ndarray
+    rho : array_like
+        Vector of residual norm `||Gm-d||_2`.
+    eta : array_like
+        Vector of solution seminorm `||Lm||_2`.
+    reg_params : array_like
         Vector of corresponding regularization parameters.
 
-    .. seealso:
-        Aster, R., Borchers, B. & Thurber, C. (2011), `Parameter Estimation and
-        Inverse Problems`, Elsevier, pp 103-107.
+    References
+    ----------
+    .. [1] Aster, R., Borchers, B. & Thurber, C. (2011), `Parameter
+       Estimation and Inverse Problems`, Elsevier, pp 103-107.
     '''
+
     m, n = G.shape
     p = la.matrix_rank(L)
 
@@ -189,19 +194,21 @@ def lcurve_tikh_gsvd(U, X, LAM, MU, d, G, L, npoints, alpha_min=None,
 
 
 def plot_lcurve(rho, eta, ax, flag=0):
-    '''Plot the L-curve (trade-off curve).
+    '''
+    Plot the L-curve (trade-off curve).
 
     Parameters
     ----------
-    rho: ndarray
-        Vector of residual norm ``||Gm-d||_2``.
-    eta: ndarray
-        Vector of solution norm ``||m||_2`` or seminorm ``||LM||_2``.
-    ax: :py:class:``matplotlib.axes._subplots.AxesSubplot`` instance
+    rho : array_like
+        Vector of residual norm `||Gm-d||_2`.
+    eta : array_like
+        Vector of solution norm `||m||_2` or seminorm `||LM||_2`.
+    ax: :py:class:`matplotlib.axes._subplots.AxesSubplot`
         Set default axes instance.
-    flag: int
+    flag : int
         Set to 0 (default) for solution norm or 1 for solution seminorm.
     '''
+
     ax.loglog(rho, eta)
     ax.set_xlabel(r'Residual norm $\Vert\textbf{Gm}-\textbf{d}\Vert_{2}$')
     if flag == 0:
@@ -211,38 +218,41 @@ def plot_lcurve(rho, eta, ax, flag=0):
 
 
 def lcurve_corner(rho, eta, reg_params, ax=None, flag=0):
-    '''Triangular/circumscribed circle simple approximation to curvature.
+    '''
+    Triangular/circumscribed circle simple approximation to curvature.
 
     Parameters
     ----------
-    rho: ndarray
-        Vector of residual norm ``||Gm-d||_2``.
-    eta: ndarray
-        Vector of solution norm ``||m||_2`` or seminorm ``||Lm||_2``
-    reg_params: ndarray
+    rho : array_like
+        Vector of residual norm `||Gm-d||_2`.
+    eta : array_like
+        Vector of solution norm `||m||_2` or seminorm `||Lm||_2`.
+    reg_params : array_like
         Vector of corresponding regularization parameters.
-    ax: :py:class:``matplotlib.axes._subplots.AxesSubplot`` instance
+    ax : :py:class:`matplotlib.axes._subplots.AxesSubplot`
         If provided, the L-curve and corner are plotted.
-    flag: int
-        Set to 0 (default) for solution norm or 1 for solution seminorm. Used
-        if plotting L-curve is requested.
+    flag : int
+        Set to 0 (default) for solution norm or 1 for solution seminorm.
+        Used if plotting L-curve is requested.
 
     Returns
     -------
-    reg_c: float
-        The value of `reg_params` with maximum curvature.
-    rho_c: float
-        The residual norm corresponding to `reg_c`.
-    eta_c: float
-        The solution norm/seminorm corresponding to `reg_c`.
+    reg_c : float
+        The value of ``reg_params`` with maximum curvature.
+    rho_c : float
+        The residual norm corresponding to ``reg_c``.
+    eta_c : float
+        The solution norm/seminorm corresponding to ``reg_c``.
 
-    .. seealso:
-        https://en.wikipedia.org/wiki/Circumscribed_circle#Triangle_centers_on_the_circumcircle_of_triangle_ABC
+    References
+    ----------
+    .. [1] https://en.wikipedia.org/wiki/Circumscribed_circle#Triangle_centers_on_the_circumcircle_of_triangle_ABC
     '''
+
     xs = np.log10(rho)
     ys = np.log10(eta)
 
-    # Side lengths for each triangle
+    # Side lengths for each triangle.
     x1 = xs[0:-2]
     x2 = xs[1:-1]
     x3 = xs[2:]
@@ -250,7 +260,7 @@ def lcurve_corner(rho, eta, reg_params, ax=None, flag=0):
     y2 = ys[1:-1]
     y3 = ys[2:]
 
-    # The side length for each triangle
+    # The side length for each triangle.
     a = np.sqrt((x3-x2)**2 + (y3-y2)**2)
     b = np.sqrt((x2-x1)**2 + (y2-y1)**2)
     c = np.sqrt((x1-x3)**2 + (y1-y3)**2)
@@ -261,9 +271,10 @@ def lcurve_corner(rho, eta, reg_params, ax=None, flag=0):
     # circumradii
     R = (a * b * c) / (4 * np.sqrt(s * (s-a) * (s-b) * (s-c)))
 
-    # The curvature for each estimate for each value is the reciprocal of its
-    # circumradius. Since there are not circumcircle for end points, their
-    # curvature is zero.
+    # The curvature for each estimate for each value is the reciprocal
+    # of its circumradius. Since there are not circumcircle for end
+    # points, their curvature is zero.
+
     kappa = np.hstack((0, 1.0/R, 0))
     icorner = np.argmax(abs(kappa[1:-1]))
     reg_c = reg_params[icorner]
@@ -285,42 +296,44 @@ def lcurve_corner(rho, eta, reg_params, ax=None, flag=0):
 
 def get_rough_mat(n, d, full=True):
     '''
-    1-D differentiating matrix (reffered to as regularization or roughening
-    matrix `L`).
-    This function computes the discrete approximation `L` to the derivative
-    operator of order `d` on a regular grid with `n` points, i.e. L is
-    (n-d)-by-n.
+    1-D differentiating matrix (reffered to as regularization or
+    roughening matrix ``L``).
+
+    This function computes the discrete approximation ``L`` to the
+    derivative operator of order ``d`` on a regular grid with ``n``
+    points, i.e. ``L`` is ``(n-d)-by-n``.
 
     Parameters
     ----------
-    n: int
+    n : int
         Number of data points.
-    d: int
+    d : int
         The order of the derivative to approximate.
-    full: bool
+    full : bool
         If True (default), it computes the full matrix. Otherwise it returns a
         sparse matrix.
 
     Returns
     -------
-    L: ndarray or :py:class:``scipy.sparse.csr.csr_matrix``
+    L : array_like or :py:class:`scipy.sparse.csr.csr_matrix`
         The discrete differentiation matrix operator.
 
-    .. seealso:
-        https://en.wikipedia.org/wiki/Sparse_matrix#Compressed_sparse_row_.28CSR.2C_CRS_or_Yale_format.29
-        http://netlib.org/linalg/html_templates/node91.html
+    References
+    ----------
+    .. [1] https://en.wikipedia.org/wiki/Sparse_matrix#Compressed_sparse_row_.28CSR.2C_CRS_or_Yale_format.29
+    .. [2] http://netlib.org/linalg/html_templates/node91.html
     '''
 
-    # Zero'th order derivative
+    # Zero'th order derivative.
     if d == 0:
         return np.identity(n)
 
-    # Let df approximates the first derivative
+    # Let df approximates the first derivative.
     df = np.insert(np.zeros((1, d-1), dtype=np.float), 0, [-1, 1])
 
     for i in range(1, d):
-        # Take the difference of the lower order derivative and itself shifted
-        # left to get a derivative one order higher.
+        # Take the difference of the lower order derivative and
+        # itself shifted left to get a derivative one order higher.
         df = np.insert(df[0:d], 0, 0) - np.append(df[0:d], 0)
 
     nd = n - d
@@ -332,7 +345,8 @@ def get_rough_mat(n, d, full=True):
         rowptrs.append(c.next())
         colinds.extend(range(i, i+d+1))
 
-    # By convension, rowptrs[end]=nnz, where nnz is the number of nonzeros in L
+    # By convension, rowptrs[end]=nnz, where nnz is
+    # the number of nonzero values in L.
     rowptrs.append(len(vals))
 
     L = csr_matrix((vals, colinds, rowptrs), shape=[nd, n])
