@@ -1,3 +1,8 @@
+"Tikhonov Regularization tools.
+
+Copyright (c) 2017 Nima Nooshiri <nima.nooshiri@gfz-potsdam.de>
+"
+
 from itertools import count
 
 import numpy as np

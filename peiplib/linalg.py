@@ -1,3 +1,9 @@
+"""
+Linear algebra utilities.
+
+Copyright (c) 2017 Nima Nooshiri <nima.nooshiri@gfz-potsdam.de>
+"""
+
 import numpy as np
 from scipy import linalg as spla
 
