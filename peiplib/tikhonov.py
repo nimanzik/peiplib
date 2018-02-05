@@ -10,8 +10,10 @@ import numpy as np
 from numpy import linalg as la
 from scipy.sparse import csr_matrix
 
+from .util import loglinspace
 
-def lcurve_svd(U, s, d, npoints, alpha_min=None, alpha_max=None):
+
+def lcurve_svd(U, s, d, npoints, reg_min=None, reg_max=None):
     """
     L-curve parameters for Tikhonov standard-form regularization.
 
@@ -30,9 +32,9 @@ def lcurve_svd(U, s, d, npoints, alpha_min=None, alpha_max=None):
         The data vector.
     npoints : int
         Number of logarithmically spaced regularization parameters.
-    alpha_min : float (optional)
+    reg_min : float (optional)
         If specified, minimum of the regularization parameters range.
-    alpha_max : float (optional)
+    reg_max : float (optional)
         If specified, maximum of the reqularization parameters range.
 
     Returns
@@ -52,10 +54,9 @@ def lcurve_svd(U, s, d, npoints, alpha_min=None, alpha_max=None):
     """
 
     smin_ratio = 16 * np.finfo(np.float).eps
-    start = alpha_min or max(s[-1], s[0]*smin_ratio)
-    stop = alpha_max or s[0]
-    reg_params = np.linspace(np.log10(start), np.log10(stop), npoints)
-    reg_params = 10**reg_params
+    start = reg_min or max(s[-1], s[0]*smin_ratio)
+    stop = reg_max or s[0]
+    reg_params = loglinspace(start, stop, npoints)
 
     m, n = U.shape
     p = s.size
@@ -90,7 +91,7 @@ def lcurve_svd(U, s, d, npoints, alpha_min=None, alpha_max=None):
 
 
 def lcurve_gsvd(
-        U, X, LAM, MU, d, G, L, npoints, alpha_min=None, alpha_max=None):
+        U, X, LAM, MU, d, G, L, npoints, reg_min=None, reg_max=None):
     """
     L-curve parameters for Tikhonov general-form regularization.
 
@@ -119,9 +120,9 @@ def lcurve_gsvd(
         The roughening matrix.
     npoints : int
         Number of logarithmically spaced regularization parameters.
-    alpha_min : float (optional)
+    reg_min : float (optional)
         Minimum of the regularization parameters range.
-    alpha_max : float (optional)
+    reg_max : float (optional)
         Maximum of the reqularization parameters range.
 
     Returns
@@ -149,24 +150,23 @@ def lcurve_gsvd(
     mus = np.sqrt(np.diag(np.dot(MU.T, MU)))
     gammas = lams / mus
 
-    if alpha_min and alpha_max:
-        start = alpha_min
-        stop = alpha_max
+    if reg_min and reg_max:
+        start = reg_min
+        stop = reg_max
     else:
         gmin_ratio = 16 * np.finfo(np.float).eps
         if m <= n:
             # The under-determined or square case.
             k = n - m
             i1, i2 = sorted((k, p-1))
-            start = alpha_min or max(gammas[i1], gammas[i2]*gmin_ratio)
-            stop = alpha_max or gammas[i2]
+            start = reg_min or max(gammas[i1], gammas[i2]*gmin_ratio)
+            stop = reg_max or gammas[i2]
         else:
             # The over-determined case.
-            start = alpha_min or max(gammas[0], gammas[p-1]*gmin_ratio)
-            stop = alpha_max or gammas[p-1]
+            start = reg_min or max(gammas[0], gammas[p-1]*gmin_ratio)
+            stop = reg_max or gammas[p-1]
 
-    reg_params = np.linspace(np.log10(start), np.log10(stop), npoints)
-    reg_params = 10**reg_params
+    reg_params = loglinspace(start, stop, npoints)
 
     if m > n:
         k = 0
@@ -203,8 +203,9 @@ def lcurve_gsvd(
     return (rho, eta, reg_params)
 
 
-def plot_lcurve(rho, eta, ax, flag=0):
-    '''
+def plot_lcurve(
+        rho, eta, ax, reg_c=None, rho_c=None, eta_c=None, flag=0, mdf=False):
+    """
     Plot the L-curve (trade-off curve).
 
     Parameters
@@ -215,20 +216,52 @@ def plot_lcurve(rho, eta, ax, flag=0):
         Vector of solution norm `||m||_2` or seminorm `||LM||_2`.
     ax: :py:class:`matplotlib.axes._subplots.AxesSubplot`
         Set default axes instance.
+    reg_c : float (optional)
+        The value of ``reg_params`` with maximum curvature.
+    rho_c : float (optional)
+        The residual norm corresponding to ``reg_c``.
+    eta_c : float (optional)
+        The solution norm/seminorm corresponding to ``reg_c``.
     flag : int
         Set to 0 (default) for solution norm or 1 for solution seminorm.
-    '''
+    mdf : bool (optional, default=False)
+        Set to True if the corner point has been determined by minimum
+        distance function (MDF) optimization technique (Belge et al. [2002])
+        and plotting origin point described in this technique is desired.
+    """
 
     ax.loglog(rho, eta)
+
+    lw = 1.0
+    if rho_c and eta_c:
+        l, r = ax.get_xbound()
+        b, t = ax.get_ybound()
+        ax.loglog([l, rho_c, rho_c], [eta_c, eta_c, b], 'r--', lw=lw)
+        ax.loglog(rho_c, eta_c, 'ro', mfc='None', ms=10, mew=1.5)
+
+        if reg_c:
+            ax.text(1.1*rho_c, 1.1*eta_c, r'$\alpha=%.2e$' % reg_c)
+
+        ax.set_xlim(l, r)
+        ax.set_ylim(b, t)
+
+    if mdf:
+        ax.axvline(x=rho[0], ymax=0.95, linestyle='--', color='k', lw=lw)
+        ax.axhline(y=eta[-1], xmax=0.95, linestyle='--', color='k', lw=lw)
+        ax.loglog(rho[0], eta[-1], 'ko', ms=10)
+
     ax.set_xlabel(r'Residual norm $\Vert\textbf{Gm}-\textbf{d}\Vert_{2}$')
+
     if flag == 0:
         ax.set_ylabel(r'Solution norm $\Vert\textbf{m}\Vert_{2}$')
     else:
         ax.set_ylabel(r'Solution seminorm $\Vert\textbf{Lm}\Vert_{2}$')
 
 
-def lcurve_corner_kappa(rho, eta, reg_params, ax=None, flag=0):
-    '''
+def lcorner_kappa(rho, eta, reg_params):
+    """
+    Determination of Tikhonov regularization parameter using L-curve criterion.
+
     Triangular/circumscribed circle simple approximation to curvature.
 
     Parameters
@@ -239,11 +272,6 @@ def lcurve_corner_kappa(rho, eta, reg_params, ax=None, flag=0):
         Vector of solution norm `||m||_2` or seminorm `||Lm||_2`.
     reg_params : array_like
         Vector of corresponding regularization parameters.
-    ax : :py:class:`matplotlib.axes._subplots.AxesSubplot`
-        If provided, the L-curve and corner are plotted.
-    flag : int
-        Set to 0 (default) for solution norm or 1 for solution seminorm.
-        Used if plotting L-curve is requested.
 
     Returns
     -------
@@ -256,8 +284,9 @@ def lcurve_corner_kappa(rho, eta, reg_params, ax=None, flag=0):
 
     References
     ----------
-    .. [1] https://en.wikipedia.org/wiki/Circumscribed_circle#Triangle_centers_on_the_circumcircle_of_triangle_ABC
-    '''
+    .. [1] https://en.wikipedia.org/wiki/Circumscribed_circle
+        #Triangle_centers_on_the_circumcircle_of_triangle_ABC
+    """
 
     xs = np.log10(rho)
     ys = np.log10(eta)
@@ -285,69 +314,176 @@ def lcurve_corner_kappa(rho, eta, reg_params, ax=None, flag=0):
     # of its circumradius. Since there are not circumcircle for end
     # points, their curvature is zero.
 
-    # kappa = np.hstack((0, 1.0/R, 0))
-    # icorner = np.nanargmax(np.abs(kappa[1:-1])) + 1
-    kappa = 1.0 / R
-    icorner = np.nanargmax(np.abs(kappa)) + 1
+    kappa = np.hstack((0, 1.0/R, 0))
+    icorner = np.nanargmax(np.abs(kappa[1:-1])) + 1
     reg_c = reg_params[icorner]
     rho_c = rho[icorner]
     eta_c = eta[icorner]
 
-    if ax:
-        plot_lcurve(rho, eta, ax=ax, flag=flag)
-        l, r = ax.get_xbound()
-        b, t = ax.get_ybound()
-        ax.loglog([l, rho_c, rho_c], [eta_c, eta_c, b], 'r--')
-        ax.loglog(rho_c, eta_c, 'ro', mfc='None', ms=12, mew=1.5)
-        ax.text(1.1*rho_c, 1.1*eta_c, r'$\alpha=%.2e$' % reg_c)
-        ax.set_xlim(l, r)
-        ax.set_ylim(b, t)
+    return (reg_c, rho_c, eta_c)
+
+
+def lcorner_mdf_svd(U, s, d, reg_init=None, tol=1.0e-16, maxiter=1200):
+    """
+    Determination of Tikhonov regularization parameter using L-curve criterion.
+
+    Minimum distance function (MDF) optimization.
+
+    Parameters
+    ----------
+    U : array_like
+        Matrix of data space basis vectors from the SVD.
+    s : array_like
+        Vector of singular values from the SVD.
+    d : array_like
+        The data vector.
+    reg_init : float (optional)
+        An appropriate initial regularization parameter.
+    tol : float
+        Absolute error in ``reg_c`` between iterations that is
+        acceptable for convergence.
+    maxiter : int
+        Maximum number of iterations to perform.
+
+    Returns
+    -------
+    reg_c : float
+        The value of ``reg_params`` with maximum curvature.
+    rho_c : float
+        The residual norm corresponding to ``reg_c``.
+    eta_c : float
+        The solution norm/seminorm corresponding to ``reg_c``.
+
+    References
+    ----------
+    .. [1] Belge, M., Kilmer, M. E. & Miller, E. L. (2002), `Efficient
+        determination of multiple regularization parameters in a
+        generalized L-curve framework`, Inverse Problems, 18, 1161-1183.
+    """
+
+    # Origin point O=(a,b)
+    rho, eta, reg_params = lcurve_svd(U, s, d, 2)
+    a = np.log10(rho[np.argmin(reg_params)]**2)
+    b = np.log10(eta[np.argmax(reg_params)]**2)
+
+    if not reg_init:
+        q = loglinspace(reg_params[0], reg_params[1], 3)
+        reg_init = q[1]
+
+    def f(reg_pre):
+        rho_pre, eta_pre, _ = lcurve_svd(
+            U, s, d, 1, reg_min=reg_pre, reg_max=reg_pre)
+        rho_pre = np.asscalar(rho_pre)
+        eta_pre = np.asscalar(eta_pre)
+        dum1 = (rho_pre/eta_pre)**2
+        dum2 = np.log10(eta_pre**2) - b
+        dum3 = np.log10(rho_pre**2) - a
+        reg_next = np.sqrt(dum1 * (dum2/dum3))
+        return reg_next
+
+    reg_next = f(reg_init)
+    change = abs((reg_next/reg_init) - 1.0)
+
+    counter = 1
+    while (change > tol) and (counter < maxiter):
+        reg_pre = reg_next
+        reg_next = f(reg_pre)
+        change = abs((reg_next/reg_pre) - 1.0)
+        counter += 1
+
+    rho_c, eta_c, reg_c = map(
+        np.asscalar,
+        lcurve_svd(U, s, d, 1, reg_min=reg_next, reg_max=reg_next))
 
     return (reg_c, rho_c, eta_c)
 
 
-def lcurve_corner_mdf(U, X, LAM, MU, d, G, L, alpha_init=None, tolerance=0.01):
+def lcorner_mdf_gsvd(
+        U, X, LAM, MU, d, G, L, reg_init=None, tol=1.0e-16, maxiter=1200):
+    """
+    Determination of Tikhonov regularization parameter using L-curve criterion.
 
+    Minimum distance function (MDF) optimization.
+
+    Parameters
+    ----------
+    U : array_like
+        m-by-m matrix of data space basis vectors from the GSVD.
+    X : array_like
+        n-by-n nonsingular matrix computed by the GSVD.
+    LAM : array_like
+        m-by-n matrix, computed by the GSVD, with diagonal entries that
+        may be shifted from the main diagonal.
+    MU : array_like
+        p-by-n diagonal matrix computed by the GSVD.
+    d : array_like
+        The data vector.
+    G : array_like
+        The system matrix (forward operator or design matrix).
+    L : array_like
+        The roughening matrix.
+    reg_init : float (optional)
+        An appropriate initial regularization parameter.
+    tol : float
+        Absolute error in ``reg_c`` between iterations that is
+        acceptable for convergence.
+    maxiter : int
+        Maximum number of iterations to perform.
+
+    Returns
+    -------
+    reg_c : float
+        The value of ``reg_params`` with maximum curvature.
+    rho_c : float
+        The residual norm corresponding to ``reg_c``.
+    eta_c : float
+        The solution norm/seminorm corresponding to ``reg_c``.
+
+    References
+    ----------
+    .. [1] Belge, M., Kilmer, M. E. & Miller, E. L. (2002), `Efficient
+        determination of multiple regularization parameters in a
+        generalized L-curve framework`, Inverse Problems, 18, 1161-1183.
+    """
+
+    # Origin point O=(a,b)
     rho, eta, reg_params = lcurve_gsvd(U, X, LAM, MU, d, G, L, 2)
+    a = np.log10(rho[np.argmin(reg_params)]**2)
+    b = np.log10(eta[np.argmax(reg_params)]**2)
 
-    x0 = np.log10(rho[0]**2)
-    y0 = np.log10(eta[1]**2)
+    if not reg_init:
+        q = loglinspace(reg_params[0], reg_params[1], 3)
+        reg_init = q[1]
 
-    def f(alpha_pre):
+    def f(reg_pre):
         rho_pre, eta_pre, _ = lcurve_gsvd(
-            U, X, LAM, MU, d, G, L, 1, alpha_min=alpha_pre,
-            alpha_max=alpha_pre)
+            U, X, LAM, MU, d, G, L, 1, reg_min=reg_pre, reg_max=reg_pre)
+        rho_pre = np.asscalar(rho_pre)
+        eta_pre = np.asscalar(eta_pre)
+        dum1 = (rho_pre/eta_pre)**2
+        dum2 = np.log10(eta_pre**2) - b
+        dum3 = np.log10(rho_pre**2) - a
+        reg_next = np.sqrt(dum1 * (dum2/dum3))
+        return reg_next
 
-        xpre = np.asscalar(rho_pre)**2
-        ypre = np.asscalar(eta_pre)**2
+    reg_next = f(reg_init)
+    change = abs((reg_next/reg_init) - 1.0)
 
-        dummy1 = xpre / (ypre)
-        dummy2 = (np.log10(ypre) - y0) / (np.log10(xpre) - x0)
-        alpha_next = (dummy1 * dummy2)**0.5
+    counter = 1
+    while (change > tol) and (counter < maxiter):
+        reg_pre = reg_next
+        reg_next = f(reg_pre)
+        change = abs((reg_next/reg_pre) - 1.0)
+        counter += 1
 
-        return alpha_next
+    rho_c, eta_c, reg_c = map(np.asscalar, lcurve_gsvd(
+        U, X, LAM, MU, d, G, L, 1, reg_min=reg_next, reg_max=reg_next))
 
-    if not alpha_init:
-        dummy = np.linspace(
-            np.log10(reg_params[0]), np.log10(reg_params[1]), 3)
-        dummy = 10**dummy
-        alpha_init = dummy[1]
-
-    alpha_next = f(alpha_init)
-    change = abs(alpha_next/alpha_init - 1.0)
-    print alpha_init, alpha_next
-
-    while change > tolerance:
-        alpha_pre = alpha_next
-        alpha_next = f(alpha_pre)
-        print alpha_pre, alpha_next
-        change = abs(alpha_next/alpha_init - 1.0)
-
-    return alpha_next
+    return (reg_c, rho_c, eta_c)
 
 
 def get_rough_mat(n, order, full=True):
-    '''
+    """
     1-D differentiating matrix (reffered to as regularization or
     roughening matrix ``L``).
 
@@ -372,9 +508,10 @@ def get_rough_mat(n, order, full=True):
 
     References
     ----------
-    .. [1] https://en.wikipedia.org/wiki/Sparse_matrix#Compressed_sparse_row_.28CSR.2C_CRS_or_Yale_format.29
+    .. [1] https://en.wikipedia.org/wiki/Sparse_matrix
+        #Compressed_sparse_row_.28CSR.2C_CRS_or_Yale_format.29
     .. [2] http://netlib.org/linalg/html_templates/node91.html
-    '''
+    """
 
     # Zero'th order derivative.
     if order == 0:
