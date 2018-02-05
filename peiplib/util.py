@@ -143,8 +143,10 @@ def picard(U, s, d, ax):
 
     x = range(k)
     ax.semilogy(x, s, '-.', label=r'$s_i$')
-    ax.semilogy(x, fcoef, 'o', label=r'$|\textbf{U}_{.,i}^{T} \textbf{d}|$')
-    ax.semilogy(x, scoef, 'x', label=r'$|\textbf{U}_{.,i}^{T} \textbf{d}|/s_{i}$')
+    ax.semilogy(
+        x, fcoef, 'o', label=r'$|\textbf{U}_{.,i}^{T} \textbf{d}|$')
+    ax.semilogy(
+        x, scoef, 'x', label=r'$|\textbf{U}_{.,i}^{T} \textbf{d}|/s_{i}$')
     ax.legend()
     ax.set_xlabel(r'Index, $i$')
     ax.set_xticks(np.linspace(0, k, 5))
@@ -154,3 +156,12 @@ def get_cbar_axes(ax, position='right', size='5%', pad='3%'):
     divider = make_axes_locatable(ax)
     cax = divider.append_axes(position, size, pad=pad)
     return cax
+
+
+__all__ = """
+    shaw
+    get_svd_solution
+    get_gsvd_solution
+    picard
+    get_cbar_axes
+"""

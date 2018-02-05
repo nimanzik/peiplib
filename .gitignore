@@ -1,3 +1,6 @@
 *.pyc
 *.pdf
 *.swp
+build/
+dist/
+peip.egg-info/

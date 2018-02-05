@@ -9,7 +9,8 @@ from scipy import linalg as spla
 
 
 def diagk(X, k):
-    """K-th matrix diagonal.
+    """
+    K-th matrix diagonal.
     This function returns the k-th diagonal of X except for 1-D arrays.
     """
     X = np.asanyarray(X)
@@ -30,7 +31,8 @@ def diagf(X):
 
 
 def diagp(Y, X, k):
-    """Diagonal positive.
+    """
+    Diagonal positive.
     This function scales the columns of Y and the rows of X by unimodular
     factors to make the k-th diagonal of X real and positive.
     """
@@ -48,7 +50,8 @@ class MatrixColumnMismatch(Exception):
 
 
 def csd(Q1, Q2):
-    """Cosine-Sine Decomposition.
+    """
+    Cosine-Sine Decomposition.
 
     Given Q1 and Q2 such that Q1'*Q1 + Q2'*Q2 = I, the C-S Decomposition is a
     joint factorization of the form
@@ -114,7 +117,6 @@ def csd(Q1, Q2):
     if (m == 1) and (p > 1):
         S[0, 0] = 0
 
-
     if k < min(n, p):
         r = min(n, p)
         i = np.arange(k, n)
@@ -134,7 +136,6 @@ def csd(Q1, Q2):
         Q, R = spla.qr(C[k:q, k:r])
         C[k:q, k:r] = diagf(R)
         U[:, i] = np.dot(U[:, i], Q)
-
 
     if m < p:
         # Diagonalize final block of S and permute blocks.
@@ -170,11 +171,9 @@ def csd(Q1, Q2):
         Z = Z[:, j]
         V = V[:, i]
 
-
     if n < p:
         # Final block of S is negligible.
         S[:, n:p] = 0
-
 
     # Make sure C and S are real and positive.
     U, C = diagp(U, C, max(0, p-m))
@@ -245,3 +244,6 @@ def gsvd(A, B, full_matrices=True, compute_all=True):
 
         sigma = dumA / dumB
         return sigma
+
+
+__all__ = ['gsvd']
