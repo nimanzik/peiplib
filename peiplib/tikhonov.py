@@ -1,7 +1,8 @@
-"Tikhonov Regularization tools.
+"""
+Tikhonov Regularization tools.
 
 Copyright (c) 2017 Nima Nooshiri <nima.nooshiri@gfz-potsdam.de>
-"
+"""
 
 from itertools import count
 
@@ -10,9 +11,14 @@ from numpy import linalg as la
 from scipy.sparse import csr_matrix
 
 
-def lcurve_tikh_svd(U, s, d, npoints, alpha_min=None, alpha_max=None):
-    '''
+def lcurve_svd(U, s, d, npoints, alpha_min=None, alpha_max=None):
+    """
     L-curve parameters for Tikhonov standard-form regularization.
+
+    If the system matrix ``G`` is m-by-n, then singular value
+    decomposition (SVD) of ``G`` is:
+
+        U, s, V = svd(G)
 
     Parameters
     ----------
@@ -24,9 +30,9 @@ def lcurve_tikh_svd(U, s, d, npoints, alpha_min=None, alpha_max=None):
         The data vector.
     npoints : int
         Number of logarithmically spaced regularization parameters.
-    alpha_min : float
+    alpha_min : float (optional)
         If specified, minimum of the regularization parameters range.
-    alpha_max :
+    alpha_max : float (optional)
         If specified, maximum of the reqularization parameters range.
 
     Returns
@@ -43,7 +49,13 @@ def lcurve_tikh_svd(U, s, d, npoints, alpha_min=None, alpha_max=None):
     .. [1] Hansen, P. C. (2001), The L-curve and its use in the
        numerical treatment of inverse problems, in book: Computational
        Inverse Problems in Electrocardiology, pp 119-142.
-    '''
+    """
+
+    smin_ratio = 16 * np.finfo(np.float).eps
+    start = alpha_min or max(s[-1], s[0]*smin_ratio)
+    stop = alpha_max or s[0]
+    reg_params = np.linspace(np.log10(start), np.log10(stop), npoints)
+    reg_params = 10**reg_params
 
     m, n = U.shape
     p = s.size
@@ -64,12 +76,6 @@ def lcurve_tikh_svd(U, s, d, npoints, alpha_min=None, alpha_max=None):
     eta = np.zeros(npoints, dtype=np.float)
     rho = np.zeros_like(eta)
 
-    smin_ratio = 16 * np.finfo(np.float).eps
-    start = alpha_min or max(s[-1], s[0]*smin_ratio)
-    stop = alpha_max or s[0]
-    reg_params = np.linspace(np.log10(start), np.log10(stop), npoints)
-    reg_params = 10**reg_params
-
     s2 = s**2
     for i in range(npoints):
         f = s2 / (s2 + reg_params[i]**2)
@@ -83,9 +89,9 @@ def lcurve_tikh_svd(U, s, d, npoints, alpha_min=None, alpha_max=None):
     return (rho, eta, reg_params)
 
 
-def lcurve_tikh_gsvd(U, X, LAM, MU, d, G, L, npoints, alpha_min=None,
-        alpha_max=None):
-    '''
+def lcurve_gsvd(
+        U, X, LAM, MU, d, G, L, npoints, alpha_min=None, alpha_max=None):
+    """
     L-curve parameters for Tikhonov general-form regularization.
 
     If the system matrix ``G`` is m-by-n and the corresponding
@@ -131,7 +137,7 @@ def lcurve_tikh_gsvd(U, X, LAM, MU, d, G, L, npoints, alpha_min=None,
     ----------
     .. [1] Aster, R., Borchers, B. & Thurber, C. (2011), `Parameter
        Estimation and Inverse Problems`, Elsevier, pp 103-107.
-    '''
+    """
 
     m, n = G.shape
     p = la.matrix_rank(L)
@@ -142,7 +148,6 @@ def lcurve_tikh_gsvd(U, X, LAM, MU, d, G, L, npoints, alpha_min=None,
     lams = np.sqrt(np.diag(np.dot(LAM.T, LAM)))
     mus = np.sqrt(np.diag(np.dot(MU.T, MU)))
     gammas = lams / mus
-    Y = np.transpose(la.inv(X))
 
     if alpha_min and alpha_max:
         start = alpha_min
@@ -153,16 +158,15 @@ def lcurve_tikh_gsvd(U, X, LAM, MU, d, G, L, npoints, alpha_min=None,
             # The under-determined or square case.
             k = n - m
             i1, i2 = sorted((k, p-1))
-            start = max(gammas[i1], gammas[i2]*gmin_ratio)
-            stop = gammas[i2]
+            start = alpha_min or max(gammas[i1], gammas[i2]*gmin_ratio)
+            stop = alpha_max or gammas[i2]
         else:
             # The over-determined case.
-            start = max(gammas[0], gammas[p-1]*gmin_ratio)
-            stop = gammas[p-1]
+            start = alpha_min or max(gammas[0], gammas[p-1]*gmin_ratio)
+            stop = alpha_max or gammas[p-1]
 
     reg_params = np.linspace(np.log10(start), np.log10(stop), npoints)
     reg_params = 10**reg_params
-
 
     if m > n:
         k = 0
@@ -183,13 +187,14 @@ def lcurve_tikh_gsvd(U, X, LAM, MU, d, G, L, npoints, alpha_min=None,
 
             if np.isinf(gam) or np.isnan(gam):
                 f[igam] = 1
-            elif (lams[igam] == 0) and (mus[j] == 0):
+            elif (lams[igam] == 0) and (mus[igam] == 0):
                 f[igam] = 0
             else:
                 f[igam] = gam**2 / (gam**2 + reg_params[ireg]**2)
 
         # Build the solution (see Aster er al. (2011), eq. (4.49) & (4.56)).
         d_proj_scale = np.dot(U[:, :n-k].T, d) / lams[k:n]
+        Y = np.transpose(la.inv(X))
         F = np.diag(f)
         mod = np.dot(Y[:, k:], np.dot(F, d_proj_scale))
         rho[ireg] = la.norm(np.dot(G, mod) - d)
@@ -222,7 +227,7 @@ def plot_lcurve(rho, eta, ax, flag=0):
         ax.set_ylabel(r'Solution seminorm $\Vert\textbf{Lm}\Vert_{2}$')
 
 
-def lcurve_corner(rho, eta, reg_params, ax=None, flag=0):
+def lcurve_corner_kappa(rho, eta, reg_params, ax=None, flag=0):
     '''
     Triangular/circumscribed circle simple approximation to curvature.
 
@@ -271,17 +276,19 @@ def lcurve_corner(rho, eta, reg_params, ax=None, flag=0):
     c = np.sqrt((x1-x3)**2 + (y1-y3)**2)
 
     # semiperimeter
-    s = (a + b + c)/2
+    s = (a + b + c)/2.0
 
     # circumradii
-    R = (a * b * c) / (4 * np.sqrt(s * (s-a) * (s-b) * (s-c)))
+    R = (a * b * c) / (4.0 * np.sqrt(s * (s-a) * (s-b) * (s-c)))
 
     # The curvature for each estimate for each value is the reciprocal
     # of its circumradius. Since there are not circumcircle for end
     # points, their curvature is zero.
 
-    kappa = np.hstack((0, 1.0/R, 0))
-    icorner = np.argmax(abs(kappa[1:-1]))
+    # kappa = np.hstack((0, 1.0/R, 0))
+    # icorner = np.nanargmax(np.abs(kappa[1:-1])) + 1
+    kappa = 1.0 / R
+    icorner = np.nanargmax(np.abs(kappa)) + 1
     reg_c = reg_params[icorner]
     rho_c = rho[icorner]
     eta_c = eta[icorner]
@@ -290,29 +297,69 @@ def lcurve_corner(rho, eta, reg_params, ax=None, flag=0):
         plot_lcurve(rho, eta, ax=ax, flag=flag)
         l, r = ax.get_xbound()
         b, t = ax.get_ybound()
-        ax.loglog([l, rho_c, rho_c], [eta_c, eta_c, b], 'r:')
+        ax.loglog([l, rho_c, rho_c], [eta_c, eta_c, b], 'r--')
         ax.loglog(rho_c, eta_c, 'ro', mfc='None', ms=12, mew=1.5)
-        ax.text(1.1*rho_c, 1.1*eta_c, r'$\alpha=%.4f$' % reg_c)
+        ax.text(1.1*rho_c, 1.1*eta_c, r'$\alpha=%.2e$' % reg_c)
         ax.set_xlim(l, r)
         ax.set_ylim(b, t)
 
     return (reg_c, rho_c, eta_c)
 
 
-def get_rough_mat(n, d, full=True):
+def lcurve_corner_mdf(U, X, LAM, MU, d, G, L, alpha_init=None, tolerance=0.01):
+
+    rho, eta, reg_params = lcurve_gsvd(U, X, LAM, MU, d, G, L, 2)
+
+    x0 = np.log10(rho[0]**2)
+    y0 = np.log10(eta[1]**2)
+
+    def f(alpha_pre):
+        rho_pre, eta_pre, _ = lcurve_gsvd(
+            U, X, LAM, MU, d, G, L, 1, alpha_min=alpha_pre,
+            alpha_max=alpha_pre)
+
+        xpre = np.asscalar(rho_pre)**2
+        ypre = np.asscalar(eta_pre)**2
+
+        dummy1 = xpre / (ypre)
+        dummy2 = (np.log10(ypre) - y0) / (np.log10(xpre) - x0)
+        alpha_next = (dummy1 * dummy2)**0.5
+
+        return alpha_next
+
+    if not alpha_init:
+        dummy = np.linspace(
+            np.log10(reg_params[0]), np.log10(reg_params[1]), 3)
+        dummy = 10**dummy
+        alpha_init = dummy[1]
+
+    alpha_next = f(alpha_init)
+    change = abs(alpha_next/alpha_init - 1.0)
+    print alpha_init, alpha_next
+
+    while change > tolerance:
+        alpha_pre = alpha_next
+        alpha_next = f(alpha_pre)
+        print alpha_pre, alpha_next
+        change = abs(alpha_next/alpha_init - 1.0)
+
+    return alpha_next
+
+
+def get_rough_mat(n, order, full=True):
     '''
     1-D differentiating matrix (reffered to as regularization or
     roughening matrix ``L``).
 
     This function computes the discrete approximation ``L`` to the
-    derivative operator of order ``d`` on a regular grid with ``n``
-    points, i.e. ``L`` is ``(n-d)-by-n``.
+    derivative operator of order ``order`` on a regular grid with ``n``
+    points, i.e. ``L`` is ``(n - order)-by-n``.
 
     Parameters
     ----------
     n : int
         Number of data points.
-    d : int
+    order : int
         The order of the derivative to approximate.
     full : bool
         If True (default), it computes the full matrix. Otherwise it returns a
@@ -330,25 +377,25 @@ def get_rough_mat(n, d, full=True):
     '''
 
     # Zero'th order derivative.
-    if d == 0:
+    if order == 0:
         return np.identity(n)
 
     # Let df approximates the first derivative.
-    df = np.insert(np.zeros((1, d-1), dtype=np.float), 0, [-1, 1])
+    df = np.insert(np.zeros((1, order-1), dtype=np.float), 0, [-1, 1])
 
-    for i in range(1, d):
+    for i in range(1, order):
         # Take the difference of the lower order derivative and
         # itself shifted left to get a derivative one order higher.
-        df = np.insert(df[0:d], 0, 0) - np.append(df[0:d], 0)
+        df = np.insert(df[0:order], 0, 0) - np.append(df[0:order], 0)
 
-    nd = n - d
+    nd = n - order
     vals = np.tile(df, nd)
-    c = count(start=0, step=(d+1))
+    c = count(start=0, step=(order+1))
     rowptrs = []
     colinds = []
     for i in range(nd):
         rowptrs.append(c.next())
-        colinds.extend(range(i, i+d+1))
+        colinds.extend(range(i, i+order+1))
 
     # By convension, rowptrs[end]=nnz, where nnz is
     # the number of nonzero values in L.
