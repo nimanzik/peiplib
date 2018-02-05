@@ -10,8 +10,19 @@ sin = math.sin
 cos = math.cos
 
 
+def loglinspace(start, stop, num):
+    """
+    Returns evenly spaced values in logarithmic scale.
+
+    The values are evenly spaced over log10(start) and log10(stop)
+    interval.
+    """
+    return np.logspace(
+        np.log10(start), np.log10(stop), num=num, endpoint=True, base=10.)
+
+
 def shaw(m, n):
-    '''
+    """
     This function generates and returns outgoing angles vector `gamma`
     (see eq. (1.40)), incoming angles vactor `theta` (see eq. (1.41)),
     and forward operator G (see eq. (1.44)) for Shaw problem.
@@ -31,7 +42,7 @@ def shaw(m, n):
         Model vector, `n` equally spaced incoming angles.
     G : array_like
         Operator G, a 2-D array with shape `m-by-n`.
-    '''
+    """
 
     i = np.arange(1, m+1)
     gamma = (i-0.5)*pi/m - pi/2
@@ -57,7 +68,7 @@ def shaw(m, n):
 
 
 def get_svd_solution(U, s, V, d, nkeep=None):
-    '''
+    """
     Standard or truncated singular value decomposition (SVD or TSVD)
     solution.
 
@@ -79,7 +90,7 @@ def get_svd_solution(U, s, V, d, nkeep=None):
     -------
     m : array_like
         The SVD or TSVD solution vector.
-    '''
+    """
 
     p = nkeep or s.size
     Up = U[:, 0:p]
@@ -91,7 +102,7 @@ def get_svd_solution(U, s, V, d, nkeep=None):
 
 
 def get_gsvd_solution(G, L, alpha, d):
-    '''
+    """
     Generalized singular value decomposition (GSVD) solution.
 
     Parameters
@@ -109,7 +120,7 @@ def get_gsvd_solution(G, L, alpha, d):
     -------
     m : array_like
         The GSVD solution vector (regularization solution).
-    '''
+    """
 
     dum1 = np.dot(G.T, G)
     dum2 = alpha**2 * np.dot(L.T, L)
@@ -119,7 +130,7 @@ def get_gsvd_solution(G, L, alpha, d):
 
 
 def picard(U, s, d, ax):
-    '''
+    """
     Visual inspection of the discrete Picard condition.
 
     Parameters
@@ -132,7 +143,7 @@ def picard(U, s, d, ax):
         The data vector.
     ax : :py:class:`matplotlib.axes._subplots.AxesSubplot`
         Set default axes instance.
-    '''
+    """
 
     k = s.size
     fcoef = np.zeros(k, dtype=np.float)
