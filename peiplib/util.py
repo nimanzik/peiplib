@@ -1,6 +1,5 @@
 import math
 
-from mpl_toolkits.axes_grid1 import make_axes_locatable
 import numpy as np
 from numpy import linalg as la
 
@@ -129,50 +128,8 @@ def get_gsvd_solution(G, L, alpha, d):
     return m
 
 
-def picard(U, s, d, ax):
-    """
-    Visual inspection of the discrete Picard condition.
-
-    Parameters
-    ----------
-    U : array_like
-        Matrix of the data space basis vectors from the SVD.
-    s : 1-D array
-        Vector of singular values.
-    d : 1-D array
-        The data vector.
-    ax : :py:class:`matplotlib.axes._subplots.AxesSubplot`
-        Set default axes instance.
-    """
-
-    k = s.size
-    fcoef = np.zeros(k, dtype=np.float)
-    scoef = np.zeros_like(fcoef)
-    for i in range(k):
-        fcoef[i] = np.dot(U[:, i].T, d)
-        scoef[i] = fcoef[i] / s[i]
-
-    x = range(k)
-    ax.semilogy(x, s, '-.', label=r'$s_i$')
-    ax.semilogy(
-        x, fcoef, 'o', label=r'$|\textbf{U}_{.,i}^{T} \textbf{d}|$')
-    ax.semilogy(
-        x, scoef, 'x', label=r'$|\textbf{U}_{.,i}^{T} \textbf{d}|/s_{i}$')
-    ax.legend()
-    ax.set_xlabel(r'Index, $i$')
-    ax.set_xticks(np.linspace(0, k, 5))
-
-
-def get_cbar_axes(ax, position='right', size='5%', pad='3%'):
-    divider = make_axes_locatable(ax)
-    cax = divider.append_axes(position, size, pad=pad)
-    return cax
-
-
 __all__ = """
     shaw
     get_svd_solution
     get_gsvd_solution
-    picard
-    get_cbar_axes
 """

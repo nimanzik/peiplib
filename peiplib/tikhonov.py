@@ -203,61 +203,6 @@ def lcurve_gsvd(
     return (rho, eta, reg_params)
 
 
-def plot_lcurve(
-        rho, eta, ax, reg_c=None, rho_c=None, eta_c=None, flag=0, mdf=False):
-    """
-    Plot the L-curve (trade-off curve).
-
-    Parameters
-    ----------
-    rho : array_like
-        Vector of residual norm `||Gm-d||_2`.
-    eta : array_like
-        Vector of solution norm `||m||_2` or seminorm `||LM||_2`.
-    ax: :py:class:`matplotlib.axes._subplots.AxesSubplot`
-        Set default axes instance.
-    reg_c : float (optional)
-        The value of ``reg_params`` with maximum curvature.
-    rho_c : float (optional)
-        The residual norm corresponding to ``reg_c``.
-    eta_c : float (optional)
-        The solution norm/seminorm corresponding to ``reg_c``.
-    flag : int
-        Set to 0 (default) for solution norm or 1 for solution seminorm.
-    mdf : bool (optional, default=False)
-        Set to True if the corner point has been determined by minimum
-        distance function (MDF) optimization technique (Belge et al. [2002])
-        and plotting origin point described in this technique is desired.
-    """
-
-    ax.loglog(rho, eta)
-
-    lw = 1.0
-    if rho_c and eta_c:
-        l, r = ax.get_xbound()
-        b, t = ax.get_ybound()
-        ax.loglog([l, rho_c, rho_c], [eta_c, eta_c, b], 'r--', lw=lw)
-        ax.loglog(rho_c, eta_c, 'ro', mfc='None', ms=10, mew=1.5)
-
-        if reg_c:
-            ax.text(1.1*rho_c, 1.1*eta_c, r'$\alpha=%.2e$' % reg_c)
-
-        ax.set_xlim(l, r)
-        ax.set_ylim(b, t)
-
-    if mdf:
-        ax.axvline(x=rho[0], ymax=0.95, linestyle='--', color='k', lw=lw)
-        ax.axhline(y=eta[-1], xmax=0.95, linestyle='--', color='k', lw=lw)
-        ax.loglog(rho[0], eta[-1], 'ko', ms=10)
-
-    ax.set_xlabel(r'Residual norm $\Vert\textbf{Gm}-\textbf{d}\Vert_{2}$')
-
-    if flag == 0:
-        ax.set_ylabel(r'Solution norm $\Vert\textbf{m}\Vert_{2}$')
-    else:
-        ax.set_ylabel(r'Solution seminorm $\Vert\textbf{Lm}\Vert_{2}$')
-
-
 def lcorner_kappa(rho, eta, reg_params):
     """
     Determination of Tikhonov regularization parameter using L-curve criterion.
