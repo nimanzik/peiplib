@@ -221,7 +221,9 @@ def lcorner_kappa(rho, eta, reg_params):
     Returns
     -------
     reg_c : float
-        The value of ``reg_params`` with maximum curvature.
+        The value of regularization parameter corresponding to the
+        corner of the L-curve (i.e. the value of ``reg_params`` with
+        maximum curvature).
     rho_c : float
         The residual norm corresponding to ``reg_c``.
     eta_c : float
@@ -293,7 +295,8 @@ def lcorner_mdf_svd(U, s, d, reg_init=None, tol=1.0e-16, maxiter=1200):
     Returns
     -------
     reg_c : float
-        The value of ``reg_params`` with maximum curvature.
+        The value of regularization parameter corresponding to the
+        corner of the L-curve.
     rho_c : float
         The residual norm corresponding to ``reg_c``.
     eta_c : float
@@ -378,7 +381,8 @@ def lcorner_mdf_gsvd(
     Returns
     -------
     reg_c : float
-        The value of ``reg_params`` with maximum curvature.
+        The value of regularization parameter corresponding to the
+        corner of the L-curve.
     rho_c : float
         The residual norm corresponding to ``reg_c``.
     eta_c : float
@@ -443,8 +447,8 @@ def get_rough_mat(n, order, full=True):
     order : int
         The order of the derivative to approximate.
     full : bool
-        If True (default), it computes the full matrix. Otherwise it returns a
-        sparse matrix.
+        If True (default), it computes the full matrix. Otherwise it
+        returns a sparse matrix.
 
     Returns
     -------
