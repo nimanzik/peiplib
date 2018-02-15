@@ -16,7 +16,7 @@ from matplotlib.animation import FuncAnimation
 import numpy as np
 from numpy import linalg as la
 
-import custompp
+import custompp   # noqa
 from util import get_cbar_axes
 
 

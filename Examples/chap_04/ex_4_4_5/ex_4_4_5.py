@@ -16,7 +16,7 @@ import numpy as np
 from numpy import linalg as la
 from scipy.io import loadmat
 
-from peiplib import custompp
+from peiplib import custompp   # noqa
 from peiplib.linalg import gsvd
 from peiplib.reg import get_rough_mat, lcurve_corner, lcurve_tikh_gsvd
 from peiplib.util import get_cbar_axes, get_gsvd_solution

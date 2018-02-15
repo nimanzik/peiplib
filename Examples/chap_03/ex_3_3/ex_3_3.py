@@ -10,13 +10,12 @@ by R. Aster, B. Borchers, C. Thurber
 '''
 
 from __future__ import division, print_function
-import math
 
 import matplotlib.pyplot as plt
 import numpy as np
 from numpy import linalg as la
 
-import custompp
+import custompp   # noqa
 from util import shaw, tsvd_solution
 
 

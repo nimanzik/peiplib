@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from numpy import linalg as la
 
-import custompp
+import custompp   # noqa
 from util import get_cbar_axes
 
 
@@ -119,7 +119,7 @@ fig2.savefig('c3fR.pdf')
 
 # --- Display reshaped diagonal elements of the model resolution matrix ---
 Rm_diag = np.diagonal(Rm).reshape(3, 3)
-print('Diagonal elements of model resolution matrix', 
+print('Diagonal elements of model resolution matrix',
     'Rm_diag=', Rm_diag, '', sep=sep)
 
 fig3 = plt.figure()

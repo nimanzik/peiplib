@@ -17,12 +17,10 @@ from numpy import linalg as la
 from scipy.interpolate import interp1d
 from scipy.sparse.linalg import lsqr
 
-from peiplib import custompp
+from peiplib import custompp   # noqa
 from peiplib.reg import lcurve_corner, lcurve_tikh_svd
-from peiplib.util import get_cbar_axes, picard, shaw
+from peiplib.util import get_cbar_axes, picard
 
-
-pi = np.pi
 
 # -----------------------------------------------------------------------------
 
@@ -188,7 +186,8 @@ theta2 = theta + dtheta/2
 
 fig7, ax7 = plt.subplots(1, 1)
 ax7.plot(theta2, spike, drawstyle='steps', label=r'$\textbf{m}_{true}$')
-ax7.plot(theta2, m_disc, '--', drawstyle='steps', label=r'$\textbf{m}_{disc.}$')
+ax7.plot(
+    theta2, m_disc, '--', drawstyle='steps', label=r'$\textbf{m}_{disc.}$')
 dum = ax7.plot(theta2, m_disc+conf95, ':', drawstyle='steps', label=r'95$\%$')
 color = plt.get(dum[0], 'color')
 ax7.plot(theta2, m_disc-conf95, ':', color=color, drawstyle='steps')
