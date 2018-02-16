@@ -61,10 +61,11 @@ print('Model null space vectors', 'V0 =', V0, '', sep=sep)
 
 
 # --- Display null space vectors reshaped to match tomography example geometry
-m01 = np.reshape(V[:, p], (3,3))
-m02 = np.reshape(V[:, p+1], (3,3))
+m01 = np.reshape(V[:, p], (3, 3))
+m02 = np.reshape(V[:, p+1], (3, 3))
 
-print('Model null space vectors reshaped into matrices',
+print(
+    'Model null space vectors reshaped into matrices',
     'm01 =', m01, '', 'm02 =', m02, '', sep=sep)
 
 
@@ -119,7 +120,8 @@ fig2.savefig('c3fR.pdf')
 
 # --- Display reshaped diagonal elements of the model resolution matrix ---
 Rm_diag = np.diagonal(Rm).reshape(3, 3)
-print('Diagonal elements of model resolution matrix',
+print(
+    'Diagonal elements of model resolution matrix',
     'Rm_diag=', Rm_diag, '', sep=sep)
 
 fig3 = plt.figure()
@@ -143,14 +145,16 @@ mtest[4, 0] = 1.0
 dtest = np.dot(G, mtest)
 
 # --- Display spike model and noise-free data
-print('Model spike and predicted data',
+print(
+    'Model spike and predicted data',
     'mtest =', mtest, '', 'dtest =', dtest, '', sep=sep)
 
 # --- Display recovered model from spark test ---
 Gdagger = la.pinv(G)
 mdagger = np.dot(Gdagger, dtest)
 
-print('Recovered model from the spike test',
+print(
+    'Recovered model from the spike test',
     'mdagger =', mdagger, '', sep=sep)
 
 

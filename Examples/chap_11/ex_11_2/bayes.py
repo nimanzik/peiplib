@@ -55,7 +55,7 @@ def bayes(G, mprior, covm, d, covd):
 
 def simmvn(mu, cov):
     """
-    Generate a random vector that is a realization of a multivariate
+    Generate a random vector that is a realization of an multivariate
     normal (MVN) distribution ``X`` with a known mean, ``mu``, and
     covariance matrix, ``cov``.
 
@@ -68,6 +68,12 @@ def simmvn(mu, cov):
 
     Returns
     -------
-    x : array-like
-
+    result : array-like
+        Random vector.
     """
+    mu = np.asarray(mu)
+    if (mu.ndim > 2) or (mu.ndim == 2 and mu.shape[1] != 1):
+        raise ValueError('array "{}" must be 1-D or 2-D.'.format(mu))
+
+    R = sla.cholesky(cov, lower=False)
+    return np.dot(R.T, np.random.randn(mu.size)) + mu

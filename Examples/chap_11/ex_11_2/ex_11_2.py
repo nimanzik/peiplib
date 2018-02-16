@@ -16,7 +16,7 @@ import numpy as np
 
 from peiplib import custompp   # noqa
 
-from bayes import bayes
+from bayes import bayes, simmvn
 
 
 # -----------------------------------------------------------------------------
@@ -49,6 +49,10 @@ CM = sigma_m**2 * np.eye(n)
 mmap, covmp = bayes(G, mprior, CM, dspiken, CD)
 
 # Plot MAP solution and the true model
+print(
+    'Displaying the true model and a MAP solution based on an '
+    'uninformative prior (fig. 1)')
+
 fig0, ax0 = plt.subplots(1, 1)
 ax0.step(theta, spike, where='mid', label='Target model')
 ax0.step(theta, mmap, where='mid', linestyle='--', label='MAP solution')
@@ -64,6 +68,8 @@ plt.close()
 prob95 = 1.96 * np.sqrt(np.diag(covmp))
 
 # Plot MAP solution with error bars
+print('Displaying the MAP solution with 95\% confidence interval (fig. 2)')
+
 fig1, ax1 = plt.subplots(1, 1)
 ax1.step(theta, mmap, where='mid', label='MAP solution')
 dummy = ax1.step(
@@ -78,3 +84,16 @@ ax1.set_ylim(-1.0, 1.5)
 ax1.legend()
 fig1.savefig('c11fmmapb.pdf')
 plt.close()
+
+# Generate a random solution
+mmap_sims = simmvn(mmap, covmp)
+
+# Plot the random solution
+print('Displaying randomly selected realization (fig. 3)')
+
+fig2, ax2 = plt.subplots(1, 1)
+ax2.step(theta, mmap_sims, where='mid')
+ax2.set_xlabel(r'$\theta$ [rad]')
+ax2.set_ylabel('Intensity')
+ax2.set_xlim(-2, 2)
+fig2.savefig('c11fmmapsims.pdf')
