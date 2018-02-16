@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-'''
+"""
 Example 4.4-5
 from Parameter Estimation and Inverse Problems, 2nd edition, 2011
 by R. Aster, B. Borchers, C. Thurber
 
 :author: Nima Nooshiri (nima.nooshiri@gfz-potsdam.de)
-'''
+"""
 
 from __future__ import division, print_function
 
@@ -18,8 +18,9 @@ from scipy.io import loadmat
 
 from peiplib import custompp   # noqa
 from peiplib.linalg import gsvd
-from peiplib.reg import get_rough_mat, lcurve_corner, lcurve_tikh_gsvd
-from peiplib.util import get_cbar_axes, get_gsvd_solution
+from peiplib.tikhonov import get_rough_mat, lcorner_kappa, lcurve_gsvd
+from peiplib.plot import get_cbar_axes, lcurve
+from peiplib.util import get_gsvd_solution
 
 
 km2m = 1000.0
@@ -31,8 +32,8 @@ vsp = loadmat('vsp.mat')
 
 k = 1
 
-# Number of model parameters (set k equal to an integer >=1 to explore the
-# n>m case in this example.
+# Number of model parameters (set k equal to an integer >=1 to explore
+# the (n >= m) case in this example.
 borehole = 1 * km2m
 M = 50
 
@@ -42,7 +43,7 @@ N = k * M
 
 # --- Generate the true smooth model ---
 depth = np.arange(0, borehole+1, 1)
-vel = (3 + np.sqrt(depth*m2km)) * km2m
+vel = (3. + np.sqrt(depth*m2km)) * km2m
 strue = 1.0 / vel
 
 
@@ -105,19 +106,15 @@ U1, V1, X1, LAM1, MU1 = gsvd(G, L1)
 
 # Apply the L curve criteria to the first-order regularization problem
 
-rho1, eta1, reg_params1 = lcurve_tikh_gsvd(U1, X1, LAM1, MU1, t, G, L1, 1200)
+rho1, eta1, reg_params1 = lcurve_gsvd(U1, X1, LAM1, MU1, t, G, L1, 1200)
 
 
 # Plot 1sr-order L-curve and find its corner.
 
-fig2, ax2 = plt.subplots(1, 1)
-alpha_tikh1, rho_corn1, eta_corn1 = lcurve_corner(
-    rho1,
-    eta1,
-    reg_params1,
-    ax=ax2,
-    flag=1)
+alpha_tikh1, rho_corn1, eta_corn1 = lcorner_kappa(rho1, eta1, reg_params1)
 
+fig2, ax2 = plt.subplots(1, 1)
+lcurve(rho1, eta1, ax2, reg_c=alpha_tikh1, rho_c=rho_corn1, eta_c=eta_corn1)
 fig2.savefig('c4flcurve1.pdf')
 plt.close()
 
@@ -132,14 +129,14 @@ m1 = get_gsvd_solution(G, L1, alpha_tikh1, t)
 
 fig3, ax3 = plt.subplots(1, 1)
 ax3.plot(depth, strue*1000.0, '--', label='True model')
-ax3.plot(dobs2, m1*1000, '-', drawstyle='steps',
-        label=r'Recovered model, 1$^{st}$ order reg.')
+ax3.plot(
+    dobs2, m1*1000, '-', drawstyle='steps',
+    label=r'Recovered model, 1$^{st}$ order reg.')
 ax3.set_xlabel('Depth [m]')
 ax3.set_ylabel('Slowness [s/km]')
 ax3.legend()
 fig3.savefig('c4fmtikh1.pdf')
 plt.close()
-
 
 
 # --- Apply second-order Tikhonov regularization ---
@@ -150,19 +147,14 @@ U2, V2, X2, LAM2, MU2 = gsvd(G, L2)
 
 # Apply the L curve criteria to the first-order regularization problem
 
-rho2, eta2, reg_params2 = lcurve_tikh_gsvd(U2, X2, LAM2, MU2, t, G, L2, 1200)
-
+rho2, eta2, reg_params2 = lcurve_gsvd(U2, X2, LAM2, MU2, t, G, L2, 1200)
 
 # Plot 1sr-order L-curve and find its corner.
 
-fig4, ax4 = plt.subplots(1, 1)
-alpha_tikh2, rho_corn2, eta_corn2 = lcurve_corner(
-    rho2,
-    eta2,
-    reg_params2,
-    ax=ax4,
-    flag=1)
+alpha_tikh2, rho_corn2, eta_corn2 = lcorner_kappa(rho2, eta2, reg_params2)
 
+fig4, ax4 = plt.subplots(1, 1)
+lcurve(rho2, eta2, ax4, reg_c=alpha_tikh2, rho_c=rho_corn2, eta_c=eta_corn2)
 fig4.savefig('c4flcurve2.pdf')
 plt.close()
 
@@ -177,8 +169,9 @@ m2 = get_gsvd_solution(G, L2, alpha_tikh2, t)
 
 fig5, ax5 = plt.subplots(1, 1)
 ax5.plot(depth, strue*1000.0, '--', label='True model')
-ax5.plot(dobs2, m2*1000, '-', drawstyle='steps',
-        label=r'Recovered model, 2$^{nd}$ order reg.')
+ax5.plot(
+    dobs2, m2*1000, '-', drawstyle='steps',
+    label=r'Recovered model, 2$^{nd}$ order reg.')
 ax5.set_xlabel('Depth [m]')
 ax5.set_ylabel('Slowness [s/km]')
 ax5.legend()
@@ -187,11 +180,13 @@ plt.close()
 
 
 # --- Get and plot the filter factors ---
-gamma1 = np.sqrt(np.diag(np.dot(LAM1.T, LAM1))) / np.sqrt(np.diag(np.dot(MU1.T, MU1)))
+gamma1 = np.sqrt(
+    np.diag(np.dot(LAM1.T, LAM1))) / np.sqrt(np.diag(np.dot(MU1.T, MU1)))
 f1 = gamma1**2 / (gamma1**2 + alpha_tikh1**2)
 f1[np.isnan(f1)] = 1.0
 
-gamma2 = np.sqrt(np.diag(np.dot(LAM2.T, LAM2))) / np.sqrt(np.diag(np.dot(MU2.T, MU2)))
+gamma2 = np.sqrt(
+    np.diag(np.dot(LAM2.T, LAM2))) / np.sqrt(np.diag(np.dot(MU2.T, MU2)))
 f2 = gamma2**2 / (gamma2**2 + alpha_tikh2**2)
 f2[np.isnan(f2)] = 1.0
 
@@ -204,7 +199,6 @@ ax6.set_ylabel('Filter factor, $f_i$')
 ax6.legend()
 fig6.savefig('c4ftikhfilt.pdf')
 plt.close()
-
 
 
 # --- Example 4.5 ---
