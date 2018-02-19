@@ -25,7 +25,6 @@ m2km = 1. / km2m
 
 skyblue = plot.to01(plot.tango_colors['skyblue2'])
 aluminium = plot.to01(plot.tango_colors['aluminium5'])
-plt.rc('text', usetex=False)
 
 
 # -----------------------------------------------------------------------------
