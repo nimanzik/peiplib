@@ -114,7 +114,7 @@ plt.close()
 
 # Setup a more restrictive prior
 mprior = np.zeros(n)
-mprior[4:-4] = hann(12, sym=True)
+mprior[5:-6] = hann(11, sym=True)[1:-1]
 
 CM = 0.25**2 * np.diag((hann(n+2, sym=True)[1:-1])**2)
 
