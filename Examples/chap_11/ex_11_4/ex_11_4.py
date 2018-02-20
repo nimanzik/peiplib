@@ -34,3 +34,17 @@ step = 0.005 * np.ones(4)
 
 # Initialize model at a random point on [-1, 1]
 m0 = (np.random.rand(nmod) - 0.5) * 2
+
+# ----- MCMC function calls ------
+
+
+def forward(m, x):
+    """Forward problem"""
+    return m[0]*np.exp(m[1]*x) + m[2]*x*np.exp(m[3]*x)
+
+
+def generate_candidate_model(x, step):
+    """
+    Generate a candidate model from the previous model using the proposal
+    distribution.
+    """
