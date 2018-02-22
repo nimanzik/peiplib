@@ -76,9 +76,15 @@ def simmvn(mu, cov):
     result : array-like
         Random vector.
     """
-    mu = np.asarray(mu)
-    if (mu.ndim > 2) or (mu.ndim == 2 and mu.shape[1] != 1):
-        raise ValueError('array "{}" must be 1-D or 2-D.'.format(mu))
+
+    if np.isscalar(mu):
+        mu = np.asarray(mu).reshape(-1,)
+    else:
+        mu = np.asarray(mu)
+
+        if (mu.ndim > 2) or (mu.ndim == 2 and mu.shape[1] != 1):
+            raise ValueError(
+                'argument "mu" must be a scalar, 1-D array, or a 2-D vector')
 
     R = sla.cholesky(cov, lower=False)
     return np.dot(R.T, np.random.randn(mu.size)) + mu
