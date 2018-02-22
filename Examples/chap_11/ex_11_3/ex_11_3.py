@@ -25,6 +25,7 @@ m2km = 1. / km2m
 
 skyblue = plot.to01(plot.tango_colors['skyblue2'])
 aluminium = plot.to01(plot.tango_colors['aluminium5'])
+bmhred = u'#A60628'
 
 
 # -----------------------------------------------------------------------------
@@ -89,7 +90,7 @@ print(
 dummy_depth = np.linspace(depth.min(), depth.max(), m)
 
 fig0, ax0 = plt.subplots(1, 1)
-ax0.plot(depth, strue/m2km, color=skyblue, lw=2)
+ax0.plot(depth, strue/m2km, color=bmhred, alpha=0.9, lw=2)
 ax0.step(dummy_depth, mprior/m2km, where='mid')
 ax0.step(
     dummy_depth, (mprior+prob95_prior)/m2km,
@@ -118,7 +119,7 @@ plt.close()
 print('Displaying the first MAP model (fig. 3)')
 
 fig2, ax2 = plt.subplots(1, 1)
-ax2.plot(depth, strue/m2km, color=skyblue, lw=2)
+ax2.plot(depth, strue/m2km, color=bmhred, alpha=0.9, lw=2)
 ax2.step(dummy_depth, mmap/m2km, where='mid')
 ax2.step(
     dummy_depth, (mmap+prob95_post)/m2km,
@@ -163,7 +164,7 @@ plt.close()
 print('Displaying the second MAP model (fig. 5)')
 
 fig4, ax4 = plt.subplots(1, 1)
-ax4.plot(depth, strue/m2km, color=skyblue, lw=2)
+ax4.plot(depth, strue/m2km, color=bmhred, alpha=0.9, lw=2)
 ax4.step(dummy_depth, mmap/m2km, where='mid')
 ax4.step(
     dummy_depth, (mmap+prob95_post)/m2km,

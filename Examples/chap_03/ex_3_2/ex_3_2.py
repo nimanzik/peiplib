@@ -305,4 +305,3 @@ ax12.set_xlabel(r'Residual norm $\Vert\textbf{Gm}-\textbf{d}\Vert_{2}$')
 ax12.set_ylabel(r'Solution norm $\Vert\textbf{m}\Vert_{2}$')
 fig12.savefig('c3ftradeoff_curve.pdf')
 plt.close()
-
