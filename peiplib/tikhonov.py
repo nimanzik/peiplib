@@ -54,8 +54,8 @@ def lcurve_svd(U, s, d, npoints, reg_min=None, reg_max=None):
     """
 
     smin_ratio = 16 * np.finfo(np.float).eps
-    start = reg_min or max(s[-1], s[0]*smin_ratio)
-    stop = reg_max or s[0]
+    start = reg_max or s[0]
+    stop = reg_min or max(s[-1], s[0]*smin_ratio)
     reg_params = loglinspace(start, stop, npoints)
 
     m, n = U.shape
@@ -151,20 +151,20 @@ def lcurve_gsvd(
     gammas = lams / mus
 
     if reg_min and reg_max:
-        start = reg_min
-        stop = reg_max
+        start = reg_max
+        stop = reg_min
     else:
         gmin_ratio = 16 * np.finfo(np.float).eps
         if m <= n:
             # The under-determined or square case.
             k = n - m
             i1, i2 = sorted((k, p-1))
-            start = reg_min or max(gammas[i1], gammas[i2]*gmin_ratio)
-            stop = reg_max or gammas[i2]
+            start = reg_max or gammas[i2]
+            stop = reg_min or max(gammas[i1], gammas[i2]*gmin_ratio)
         else:
             # The over-determined case.
-            start = reg_min or max(gammas[0], gammas[p-1]*gmin_ratio)
-            stop = reg_max or gammas[p-1]
+            start = reg_max or gammas[p-1]
+            stop = reg_min or max(gammas[0], gammas[p-1]*gmin_ratio)
 
     reg_params = loglinspace(start, stop, npoints)
 
@@ -231,14 +231,15 @@ def lcorner_kappa(rho, eta, reg_params):
 
     References
     ----------
-    .. [1] https://en.wikipedia.org/wiki/Circumscribed_circle
+    .. [1] https://de.mathworks.com/matlabcentral/answers/284245-matlab-code-for-computing-curvature-equation#answer_222173
+    .. [2] https://en.wikipedia.org/wiki/Circumscribed_circle
         #Triangle_centers_on_the_circumcircle_of_triangle_ABC
     """
 
     xs = np.log10(rho)
     ys = np.log10(eta)
 
-    # Side lengths for each triangle.
+    # Side lengths for each triangle
     x1 = xs[0:-2]
     x2 = xs[1:-1]
     x3 = xs[2:]
@@ -246,23 +247,18 @@ def lcorner_kappa(rho, eta, reg_params):
     y2 = ys[1:-1]
     y3 = ys[2:]
 
-    # The side length for each triangle.
-    a = np.sqrt((x3-x2)**2 + (y3-y2)**2)
-    b = np.sqrt((x2-x1)**2 + (y2-y1)**2)
-    c = np.sqrt((x1-x3)**2 + (y1-y3)**2)
+    # The side length for each triangle
+    a = np.sqrt((x1-x2)**2 + (y1-y2)**2)
+    b = np.sqrt((x2-x3)**2 + (y2-y3)**2)
+    c = np.sqrt((x3-x1)**2 + (y3-y1)**2)
 
-    # semiperimeter
-    s = (a + b + c)/2.0
+    # Area of triangles
+    A = 0.5 * abs((x1-x2)*(y3-y2) - (y1-y2)*(x3-x2))
 
-    # circumradii
-    R = (a * b * c) / (4.0 * np.sqrt(s * (s-a) * (s-b) * (s-c)))
+    # Curvature of circumscribing circle
+    kappa = (4.0*A) / (a*b*c)
 
-    # The curvature for each estimate for each value is the reciprocal
-    # of its circumradius. Since there are not circumcircle for end
-    # points, their curvature is zero.
-
-    kappa = np.hstack((0, 1.0/R, 0))
-    icorner = np.nanargmax(np.abs(kappa[1:-1])) + 1
+    icorner = np.nanargmax(kappa)
     reg_c = reg_params[icorner]
     rho_c = rho[icorner]
     eta_c = eta[icorner]
@@ -401,8 +397,8 @@ def lcorner_mdf_gsvd(
     b = np.log10(eta[np.argmax(reg_params)]**2)
 
     if not reg_init:
-        q = loglinspace(reg_params[0], reg_params[1], 3)
-        reg_init = q[1]
+        q = loglinspace(reg_params[0], reg_params[1], 9)
+        reg_init = q[4]
 
     def f(reg_pre):
         rho_pre, eta_pre, _ = lcurve_gsvd(
