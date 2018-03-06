@@ -19,7 +19,7 @@ from scipy.sparse.linalg import lsqr
 
 from peiplib import custompp   # noqa
 from peiplib.reg import lcurve_corner, lcurve_tikh_svd
-from peiplib.util import get_cbar_axes, picard
+from peiplib.plot import get_cbar_axes, picard
 
 
 # -----------------------------------------------------------------------------
