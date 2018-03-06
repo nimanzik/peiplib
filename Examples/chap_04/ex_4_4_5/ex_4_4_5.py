@@ -114,7 +114,9 @@ rho1, eta1, reg_params1 = lcurve_gsvd(U1, X1, LAM1, MU1, t, G, L1, 1200)
 alpha_tikh1, rho_corn1, eta_corn1 = lcorner_kappa(rho1, eta1, reg_params1)
 
 fig2, ax2 = plt.subplots(1, 1)
-lcurve(rho1, eta1, ax2, reg_c=alpha_tikh1, rho_c=rho_corn1, eta_c=eta_corn1)
+lcurve(
+    rho1, eta1, ax2, reg_c=alpha_tikh1,
+    rho_c=rho_corn1, eta_c=eta_corn1, flag=1)
 fig2.savefig('c4flcurve1.pdf')
 plt.close()
 
@@ -149,12 +151,15 @@ U2, V2, X2, LAM2, MU2 = gsvd(G, L2)
 
 rho2, eta2, reg_params2 = lcurve_gsvd(U2, X2, LAM2, MU2, t, G, L2, 1200)
 
-# Plot 1sr-order L-curve and find its corner.
+# Plot 2nd-order L-curve and find its corner.
 
 alpha_tikh2, rho_corn2, eta_corn2 = lcorner_kappa(rho2, eta2, reg_params2)
 
+
 fig4, ax4 = plt.subplots(1, 1)
-lcurve(rho2, eta2, ax4, reg_c=alpha_tikh2, rho_c=rho_corn2, eta_c=eta_corn2)
+lcurve(
+    rho2, eta2, ax4, reg_c=alpha_tikh2,
+    rho_c=rho_corn2, eta_c=eta_corn2, flag=1)
 fig4.savefig('c4flcurve2.pdf')
 plt.close()
 

@@ -129,23 +129,23 @@ def lcurve(
 
     ls = ':'
     lw = 1.0
-    lc = to01(tango_RGB['aluminium5'])
-    mc = mc or to01(tango_RGB['scarletred1'])
+    lc = tango_hex['aluminium5']
+    mc = mc or tango_hex['scarletred2']
     ms = 8
 
     if mdf_orig:
         ax.annotate(
             "",
             xy=(rho_c, eta_c), xycoords='data',
-            xytext=(rho[0], eta[-1]), textcoords='data',
+            xytext=(rho[-1], eta[0]), textcoords='data',
             arrowprops=dict(
                 arrowstyle='-|>', connectionstyle='arc3', facecolor='black'),)
 
-        ax.axvline(x=rho[0], ymax=0.95, linestyle=ls, color=lc, lw=lw)
+        ax.axvline(x=rho[-1], ymax=0.95, linestyle=ls, color=lc, lw=lw)
 
-        ax.axhline(y=eta[-1], xmax=0.95, linestyle=ls, color=lc, lw=lw)
+        ax.axhline(y=eta[0], xmax=0.95, linestyle=ls, color=lc, lw=lw)
 
-        ax.loglog(rho[0], eta[-1], 'ko', ms=ms)
+        ax.loglog(rho[-1], eta[0], 'ko', ms=ms)
 
     if rho_c and eta_c:
         l, r = ax.get_xbound()
