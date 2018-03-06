@@ -81,7 +81,10 @@ def tohex(c):
     return '%02x%02x%02x' % c
 
 
-def nice_sci_value(x, ndecimals=2, precision=None, exponent=None):
+def nice_sci_notation(x, ndecimals=2, precision=None, exponent=None):
+    """
+    https://stackoverflow.com/a/18313780/3202380
+    """
     if not exponent:
         exponent = int(math.floor(math.log10(abs(x))))
 
@@ -89,7 +92,7 @@ def nice_sci_value(x, ndecimals=2, precision=None, exponent=None):
 
     precision = precision or ndecimals
 
-    return r"${0:.2f}\times10^{{{1:d}}}$".format(coeff, exponent, precision)
+    return r"${0:.{1}f}\times10^{{{2:d}}}$".format(coeff, precision, exponent)
 
 
 def lcurve(
@@ -156,7 +159,8 @@ def lcurve(
 
         if reg_c:
             ax.text(
-                1.01*rho_c, 1.15*eta_c, r'$\alpha=$%s' % nice_sci_value(reg_c))
+                1.015*rho_c, 1.15*eta_c,
+                r'$\alpha=$%s' % nice_sci_notation(reg_c))
 
         ax.set_xlim(l, r)
         ax.set_ylim(b, t)
