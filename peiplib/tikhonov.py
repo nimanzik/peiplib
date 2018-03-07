@@ -427,7 +427,7 @@ def lcorner_mdf_gsvd(
     return (reg_c, rho_c, eta_c)
 
 
-def get_rough_mat(n, order, full=True):
+def roughmat(n, order, full=True):
     """
     1-D differentiating matrix (reffered to as regularization or
     roughening matrix ``L``).
@@ -488,3 +488,13 @@ def get_rough_mat(n, order, full=True):
     if full:
         return L.toarray()
     return L
+
+
+__all__ = """
+lcurve_svd
+lcurve_gsvd
+lcorner_kappa
+lcorner_mdf_svd
+lcorner_mdf_gsvd
+roughmat
+""".split()

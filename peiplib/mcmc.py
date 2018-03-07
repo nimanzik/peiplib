@@ -6,14 +6,10 @@ Copyright (c) 2018 Nima Nooshiri <nima.nooshiri@gfz-potsdam.de>
 
 import numpy as np
 
-
-def isvector(x):
-    if (x.ndim > 2) or (x.ndim == 2 and x.shape[1] != 1):
-        return False
-    return True
+from peiplib.util import isvector
 
 
-def mh_sample(
+def metropolis_hastings(
         mstart, nsample, loglikelihood, logprior, proprnd, logprop=None,
         symmetric=False, burnin=0, thin=1, nchain=1):
     """
@@ -174,7 +170,7 @@ def mh_sample(
     return (samples, accrate, mmap)
 
 
-def rwmh_sample(
+def randomwalk_metropolis_hastings(
         mstart, nsample, loglikelihood, logprior, step,
         proprnd_type='normal', burnin=0, thin=1, nchain=1):
     """
@@ -261,12 +257,12 @@ def rwmh_sample(
         raise ValueError(
             'cannot support proprnd_type: "{}"'.format(proprnd_type))
 
-    return mh_sample(
+    return metropolis_hastings(
         mstart, nsample, loglikelihood, logprior, proprnd, symmetric=True,
         burnin=burnin, thin=thin, nchain=nchain)
 
 
-def logpdf(x):
+def eval_logpdf(x):
     """
     Computes the natural logarithm of a custom probability density
     function evaluated at ``x``.
@@ -285,3 +281,10 @@ def logpdf(x):
     idx = x > 0
     y[idx] = np.log(x[idx])
     return y
+
+
+__all__ = """
+metropolis_hastings
+randomwalk_metropolis_hastings
+eval_logpdf
+""".split()
