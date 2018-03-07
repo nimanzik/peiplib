@@ -102,8 +102,8 @@ def get_cbar_axes(ax, position='right', size='5%', pad='3%'):
 
 
 def lcurve(
-        rho, eta, ax, reg_c=None, rho_c=None, eta_c=None, flag=0,
-        mdf_orig=False, mc=None):
+        rho, eta, ax, reg_c=None, rho_c=None, eta_c=None, seminorm=False,
+        mdf_orig=False, mc=None, freqdomain=False):
     """
     Plot L-curve (trade-off curve).
 
@@ -121,17 +121,23 @@ def lcurve(
         The residual norm corresponding to ``reg_c``.
     eta_c : float (optional)
         The solution norm/seminorm corresponding to ``reg_c``.
-    flag : int
-        Set to 0 (default) for solution norm or 1 for solution seminorm.
+    seminorm : bool (optional, default: False)
+        Set to True if yaxis is solution *seminorm* instead of solution
+        *norm*.
     mdf_orig : bool (optional, default=False)
         Set to True if the corner point has been determined by minimum
         distance function (MDF) optimization technique (Belge et al. [2002])
         and plotting origin point described in this technique is desired.
-    mc : 3-tuple, 4-tuple, str
+    mc : 3-tuple, 4-tuple, str (optional)
         The marker color (one of matplotlib color formats).
+    freqdomain : bool (optional, default: False)
+        Set to True if residual norms and solution norms are in frequency
+        domain (i.e. the regularization is done using Fourier methods).
     """
+    ax.set_xscale('log', nonposx='clip')
+    ax.set_yscale('log', nonposy='clip')
 
-    ax.loglog(rho, eta)
+    ax.plot(rho, eta)
 
     ls = ':'
     lw = 1.0
@@ -139,6 +145,7 @@ def lcurve(
     mc = mc or tango_hex['scarletred2']
     ms = 8
 
+    # Minum distance function
     if mdf_orig:
         ax.annotate(
             "",
@@ -151,32 +158,42 @@ def lcurve(
 
         ax.axhline(y=eta[0], xmax=0.95, linestyle=ls, color=lc, lw=lw)
 
-        ax.loglog(rho[-1], eta[0], 'ko', ms=ms)
+        ax.plot(rho[-1], eta[0], 'ko', ms=ms)
 
+    # L-curve corner
     if rho_c and eta_c:
         l, r = ax.get_xbound()
         b, t = ax.get_ybound()
 
-        ax.loglog(
+        ax.plot(
             [l, rho_c, rho_c], [eta_c, eta_c, b],
             linestyle=ls, color=lc, lw=lw)
 
-        ax.loglog(rho_c, eta_c, 'o', mfc='None', ms=ms, mew=1.5, color=mc)
+        ax.plot(rho_c, eta_c, 'o', mfc='None', ms=ms, mew=1.5, color=mc)
 
         if reg_c:
             ax.text(
-                1.015*rho_c, 1.15*eta_c,
+                1.01*rho_c, 1.1*eta_c,
                 r'$\alpha=$%s' % nice_sci_notation(reg_c))
 
         ax.set_xlim(l, r)
         ax.set_ylim(b, t)
 
-    ax.set_xlabel(r'Residual norm $\Vert\textbf{Gm}-\textbf{d}\Vert_{2}$')
-
-    if flag == 0:
-        ax.set_ylabel(r'Solution norm $\Vert\textbf{m}\Vert_{2}$')
+    # Set xlabel
+    if freqdomain:
+        ax.set_xlabel(r'Residual norm $\Vert \mathcal{GM-D} \Vert_{2}$')
     else:
-        ax.set_ylabel(r'Solution seminorm $\Vert\textbf{Lm}\Vert_{2}$')
+        ax.set_xlabel(r'Residual norm $\Vert \mathbf{Gm-d} \Vert_{2}$')
+
+    # Set ylabel
+    if seminorm and freqdomain:
+        ax.set_ylabel(r'Solution seminorm $\Vert \mathcal{LM} \Vert_{2}$')
+    elif seminorm and not freqdomain:
+        ax.set_ylabel(r'Solution seminorm $\Vert \mathbf{Lm} \Vert_{2}$')
+    elif not seminorm and freqdomain:
+        ax.set_ylabel(r'Solution norm $\Vert \mathcal{M} \Vert_{2}$')
+    else:
+        ax.set_ylabel(r'Solution norm $\Vert \mathbf{m} \Vert_{2}$')
 
 
 def picard(U, s, d, ax):
