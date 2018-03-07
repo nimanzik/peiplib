@@ -2,7 +2,8 @@ import matplotlib.pyplot as plt
 from numpy import random
 from scipy.stats import norm, uniform
 
-from peiplib.mcmc import logpdf, mh_sample, rwmh_sample
+from peiplib.mcmc import eval_logpdf, metropolis_hastings, \
+    randomwalk_metropolis_hastings
 
 
 delta = 0.5
@@ -11,7 +12,7 @@ mstart = 1
 
 
 def loglikelihood(x):
-    return logpdf(norm.pdf(x))
+    return eval_logpdf(norm.pdf(x))
 
 
 def logprior(x):
@@ -23,13 +24,13 @@ def proprnd(x):
 
 
 def logprop(x, y):
-    return logpdf(uniform.pdf(y-x, -delta, delta))
+    return eval_logpdf(uniform.pdf(y-x, -delta, delta))
 
 
-# samples, accrate, _ = mh_sample(
+# samples, accrate, _ = metropolis_hastings(
 #     mstart, nsample, loglikelihood, logprior, proprnd, symmetric=True)
 
-samples, accrate, mmap = rwmh_sample(
+samples, accrate, mmap = randomwalk_metropolis_hastings(
     mstart, nsample, loglikelihood, logprior, delta, proprnd_type='uniform')
 
 print accrate, mmap
