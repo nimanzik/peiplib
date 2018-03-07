@@ -1,4 +1,3 @@
-
 import math
 
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -217,6 +216,7 @@ def picard(U, s, d, ax):
 __all__ = """
 deep_hex
 tango_hex
+tango_RGB
 to01
 tohex
 nice_sci_notation
