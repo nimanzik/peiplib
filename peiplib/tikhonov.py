@@ -7,13 +7,13 @@ Copyright (c) 2017 Nima Nooshiri <nima.nooshiri@gfz-potsdam.de>
 from itertools import count
 
 import numpy as np
-from numpy import linalg as la
+from numpy import linalg as nla
 from scipy.sparse import csr_matrix
 
 from .util import loglinspace
 
 
-def lcurve_svd(U, s, d, npoints, reg_min=None, reg_max=None):
+def lcurve_svd(U, s, d, npoints, alpha_min=None, alpha_max=None):
     """
     L-curve parameters for Tikhonov standard-form regularization.
 
@@ -24,26 +24,26 @@ def lcurve_svd(U, s, d, npoints, reg_min=None, reg_max=None):
 
     Parameters
     ----------
-    U : array_like
+    U : array-like
         Matrix of data space basis vectors from the SVD.
-    s : array_like
+    s : array-like
         Vector of singular values from the SVD.
-    d : array_like
+    d : array-like
         The data vector.
     npoints : int
         Number of logarithmically spaced regularization parameters.
-    reg_min : float (optional)
+    alpha_min : float (optional)
         If specified, minimum of the regularization parameters range.
-    reg_max : float (optional)
+    alpha_max : float (optional)
         If specified, maximum of the reqularization parameters range.
 
     Returns
     -------
-    rho : array_like
+    rhos : array-like
         Vector of residual norm `||Gm-d||_2`.
-    eta : array_like
+    etas : array-like
         Vector of solution norm `||m||_2`.
-    reg_params : array_like
+    alphas : array-like
         Vector of corresponding regularization parameters.
 
     References
@@ -54,9 +54,9 @@ def lcurve_svd(U, s, d, npoints, reg_min=None, reg_max=None):
     """
 
     smin_ratio = 16 * np.finfo(np.float).eps
-    start = reg_max or s[0]
-    stop = reg_min or max(s[-1], s[0]*smin_ratio)
-    reg_params = loglinspace(start, stop, npoints)
+    start = alpha_max or s[0]
+    stop = alpha_min or max(s[-1], s[0]*smin_ratio)
+    alphas = loglinspace(start, stop, npoints)
 
     m, n = U.shape
     p = s.size
@@ -66,7 +66,7 @@ def lcurve_svd(U, s, d, npoints, reg_min=None, reg_max=None):
 
     # Projection, and residual error introduced by the projection
     d_proj = np.dot(U.T, d)
-    dr = la.norm(d)**2 - la.norm(d_proj)**2
+    dr = nla.norm(d)**2 - nla.norm(d_proj)**2
 
     d_proj = d_proj[0:p]
 
@@ -74,24 +74,24 @@ def lcurve_svd(U, s, d, npoints, reg_min=None, reg_max=None):
     d_proj_scale = d_proj / s
 
     # Initialize storage space
-    eta = np.zeros(npoints, dtype=np.float)
-    rho = np.zeros_like(eta)
+    etas = np.zeros(npoints, dtype=np.float)
+    rhos = np.zeros_like(etas)
 
     s2 = s**2
     for i in range(npoints):
-        f = s2 / (s2 + reg_params[i]**2)
-        eta[i] = la.norm(f * d_proj_scale)
-        rho[i] = la.norm((1-f) * d_proj)
+        f = s2 / (s2 + alphas[i]**2)
+        etas[i] = nla.norm(f * d_proj_scale)
+        rhos[i] = nla.norm((1-f) * d_proj)
 
     # If we couldn't match the data exactly add the projection induced misfit
     if (m > n) and (dr > 0):
-        rho = np.sqrt(rho**2 + dr)
+        rhos = np.sqrt(rhos**2 + dr)
 
-    return (rho, eta, reg_params)
+    return (rhos, etas, alphas)
 
 
 def lcurve_gsvd(
-        U, X, LAM, MU, d, G, L, npoints, reg_min=None, reg_max=None):
+        U, X, LAM, MU, d, G, L, npoints, alpha_min=None, alpha_max=None):
     """
     L-curve parameters for Tikhonov general-form regularization.
 
@@ -103,35 +103,35 @@ def lcurve_gsvd(
 
     Parameters
     ----------
-    U : array_like
+    U : array-like
         m-by-m matrix of data space basis vectors from the GSVD.
-    X : array_like
+    X : array-like
         n-by-n nonsingular matrix computed by the GSVD.
-    LAM : array_like
+    LAM : array-like
         m-by-n matrix, computed by the GSVD, with diagonal entries that
         may be shifted from the main diagonal.
-    MU : array_like
+    MU : array-like
         p-by-n diagonal matrix computed by the GSVD.
-    d : array_like
+    d : array-like
         The data vector.
-    G : array_like
+    G : array-like
         The system matrix (forward operator or design matrix).
-    L : array_like
+    L : array-like
         The roughening matrix.
     npoints : int
         Number of logarithmically spaced regularization parameters.
-    reg_min : float (optional)
+    alpha_min : float (optional)
         Minimum of the regularization parameters range.
-    reg_max : float (optional)
+    alpha_max : float (optional)
         Maximum of the reqularization parameters range.
 
     Returns
     -------
-    rho : array_like
+    rhos : array-like
         Vector of residual norm `||Gm-d||_2`.
-    eta : array_like
+    etas : array-like
         Vector of solution seminorm `||Lm||_2`.
-    reg_params : array_like
+    alphas : array-like
         Vector of corresponding regularization parameters.
 
     References
@@ -141,7 +141,7 @@ def lcurve_gsvd(
     """
 
     m, n = G.shape
-    p = la.matrix_rank(L)
+    p = nla.matrix_rank(L)
 
     if len(d.shape) == 2:
         d = d.reshape(d.size,)
@@ -150,23 +150,23 @@ def lcurve_gsvd(
     mus = np.sqrt(np.diag(np.dot(MU.T, MU)))
     gammas = lams / mus
 
-    if reg_min and reg_max:
-        start = reg_max
-        stop = reg_min
+    if alpha_min and alpha_max:
+        start = alpha_max
+        stop = alpha_min
     else:
         gmin_ratio = 16 * np.finfo(np.float).eps
         if m <= n:
             # The under-determined or square case.
             k = n - m
             i1, i2 = sorted((k, p-1))
-            start = reg_max or gammas[i2]
-            stop = reg_min or max(gammas[i1], gammas[i2]*gmin_ratio)
+            start = alpha_max or gammas[i2]
+            stop = alpha_min or max(gammas[i1], gammas[i2]*gmin_ratio)
         else:
             # The over-determined case.
-            start = reg_max or gammas[p-1]
-            stop = reg_min or max(gammas[0], gammas[p-1]*gmin_ratio)
+            start = alpha_max or gammas[p-1]
+            stop = alpha_min or max(gammas[0], gammas[p-1]*gmin_ratio)
 
-    reg_params = loglinspace(start, stop, npoints)
+    alphas = loglinspace(start, stop, npoints)
 
     if m > n:
         k = 0
@@ -174,10 +174,11 @@ def lcurve_gsvd(
         k = n - m
 
     # Initialization.
-    eta = np.zeros(npoints, dtype=np.float)
-    rho = np.zeros_like(eta)
+    etas = np.zeros(npoints, dtype=np.float)
+    rhos = np.zeros_like(etas)
 
     # Solve for each solution.
+    Y = np.transpose(nla.inv(X))
     for ireg in range(npoints):
 
         # Series filter coeficients for this regularization parameter.
@@ -190,20 +191,19 @@ def lcurve_gsvd(
             elif (lams[igam] == 0) and (mus[igam] == 0):
                 f[igam] = 0
             else:
-                f[igam] = gam**2 / (gam**2 + reg_params[ireg]**2)
+                f[igam] = gam**2 / (gam**2 + alphas[ireg]**2)
 
         # Build the solution (see Aster er al. (2011), eq. (4.49) & (4.56)).
         d_proj_scale = np.dot(U[:, :n-k].T, d) / lams[k:n]
-        Y = np.transpose(la.inv(X))
         F = np.diag(f)
         mod = np.dot(Y[:, k:], np.dot(F, d_proj_scale))
-        rho[ireg] = la.norm(np.dot(G, mod) - d)
-        eta[ireg] = la.norm(np.dot(L, mod))
+        rhos[ireg] = nla.norm(np.dot(G, mod) - d)
+        etas[ireg] = nla.norm(np.dot(L, mod))
 
-    return (rho, eta, reg_params)
+    return (rhos, etas, alphas)
 
 
-def lcorner_kappa(rho, eta, reg_params):
+def lcorner_kappa(rhos, etas, alphas):
     """
     Determination of Tikhonov regularization parameter using L-curve criterion.
 
@@ -211,33 +211,33 @@ def lcorner_kappa(rho, eta, reg_params):
 
     Parameters
     ----------
-    rho : array_like
+    rhos : array-like
         Vector of residual norm `||Gm-d||_2`.
-    eta : array_like
+    etas : array-like
         Vector of solution norm `||m||_2` or seminorm `||Lm||_2`.
-    reg_params : array_like
+    alphas : array-like
         Vector of corresponding regularization parameters.
 
     Returns
     -------
-    reg_c : float
+    alpha_c : float
         The value of regularization parameter corresponding to the
-        corner of the L-curve (i.e. the value of ``reg_params`` with
+        corner of the L-curve (i.e. the value of ``alphas`` with
         maximum curvature).
     rho_c : float
-        The residual norm corresponding to ``reg_c``.
+        The residual norm corresponding to ``alpha_c``.
     eta_c : float
-        The solution norm/seminorm corresponding to ``reg_c``.
+        The solution norm/seminorm corresponding to ``alpha_c``.
 
     References
     ----------
     .. [1] https://de.mathworks.com/matlabcentral/answers/284245-matlab-code-for-computing-curvature-equation#answer_222173
     .. [2] https://en.wikipedia.org/wiki/Circumscribed_circle
-        #Triangle_centers_on_the_circumcircle_of_triangle_ABC
+       #Triangle_centers_on_the_circumcircle_of_triangle_ABC
     """
 
-    xs = np.log10(rho)
-    ys = np.log10(eta)
+    xs = np.log10(rhos)
+    ys = np.log10(etas)
 
     # Side lengths for each triangle
     x1 = xs[0:-2]
@@ -259,14 +259,14 @@ def lcorner_kappa(rho, eta, reg_params):
     kappa = (4.0*A) / (a*b*c)
 
     icorner = np.nanargmax(kappa)
-    reg_c = reg_params[icorner]
-    rho_c = rho[icorner]
-    eta_c = eta[icorner]
+    alpha_c = alphas[icorner]
+    rho_c = rhos[icorner]
+    eta_c = etas[icorner]
 
-    return (reg_c, rho_c, eta_c)
+    return (alpha_c, rho_c, eta_c)
 
 
-def lcorner_mdf_svd(U, s, d, reg_init=None, tol=1.0e-16, maxiter=1200):
+def lcorner_mdf_svd(U, s, d, alpha_init=None, tol=1.0e-16, maxiter=1200):
     """
     Determination of Tikhonov regularization parameter using L-curve criterion.
 
@@ -274,76 +274,76 @@ def lcorner_mdf_svd(U, s, d, reg_init=None, tol=1.0e-16, maxiter=1200):
 
     Parameters
     ----------
-    U : array_like
+    U : array-like
         Matrix of data space basis vectors from the SVD.
-    s : array_like
+    s : array-like
         Vector of singular values from the SVD.
-    d : array_like
+    d : array-like
         The data vector.
-    reg_init : float (optional)
+    alpha_init : float (optional)
         An appropriate initial regularization parameter.
     tol : float
-        Absolute error in ``reg_c`` between iterations that is
+        Absolute error in ``alpha_c`` between iterations that is
         acceptable for convergence.
     maxiter : int
         Maximum number of iterations to perform.
 
     Returns
     -------
-    reg_c : float
+    alpha_c : float
         The value of regularization parameter corresponding to the
         corner of the L-curve.
     rho_c : float
-        The residual norm corresponding to ``reg_c``.
+        The residual norm corresponding to ``alpha_c``.
     eta_c : float
-        The solution norm/seminorm corresponding to ``reg_c``.
+        The solution norm/seminorm corresponding to ``alpha_c``.
 
     References
     ----------
     .. [1] Belge, M., Kilmer, M. E. & Miller, E. L. (2002), `Efficient
-        determination of multiple regularization parameters in a
-        generalized L-curve framework`, Inverse Problems, 18, 1161-1183.
+       determination of multiple regularization parameters in a
+       generalized L-curve framework`, Inverse Problems, 18, 1161-1183.
     """
 
     # Origin point O=(a,b)
-    rho, eta, reg_params = lcurve_svd(U, s, d, 2)
-    a = np.log10(rho[np.argmin(reg_params)]**2)
-    b = np.log10(eta[np.argmax(reg_params)]**2)
+    rhos, etas, alphas = lcurve_svd(U, s, d, 2)
+    a = np.log10(rhos[np.argmin(alphas)]**2)
+    b = np.log10(etas[np.argmax(alphas)]**2)
 
-    if not reg_init:
-        q = loglinspace(reg_params[0], reg_params[1], 3)
-        reg_init = q[1]
+    if not alpha_init:
+        q = loglinspace(alphas[0], alphas[1], 3)
+        alpha_init = q[1]
 
-    def f(reg_pre):
+    def f(alpha_pre):
         rho_pre, eta_pre, _ = lcurve_svd(
-            U, s, d, 1, reg_min=reg_pre, reg_max=reg_pre)
+            U, s, d, 1, alpha_min=alpha_pre, alpha_max=alpha_pre)
         rho_pre = np.asscalar(rho_pre)
         eta_pre = np.asscalar(eta_pre)
         dum1 = (rho_pre/eta_pre)**2
         dum2 = np.log10(eta_pre**2) - b
         dum3 = np.log10(rho_pre**2) - a
-        reg_next = np.sqrt(dum1 * (dum2/dum3))
-        return reg_next
+        alpha_next = np.sqrt(dum1 * (dum2/dum3))
+        return alpha_next
 
-    reg_next = f(reg_init)
-    change = abs((reg_next/reg_init) - 1.0)
+    alpha_next = f(alpha_init)
+    change = abs((alpha_next/alpha_init) - 1.0)
 
     counter = 1
     while (change > tol) and (counter < maxiter):
-        reg_pre = reg_next
-        reg_next = f(reg_pre)
-        change = abs((reg_next/reg_pre) - 1.0)
+        alpha_pre = alpha_next
+        alpha_next = f(alpha_pre)
+        change = abs((alpha_next/alpha_pre) - 1.0)
         counter += 1
 
-    rho_c, eta_c, reg_c = map(
+    rho_c, eta_c, alpha_c = map(
         np.asscalar,
-        lcurve_svd(U, s, d, 1, reg_min=reg_next, reg_max=reg_next))
+        lcurve_svd(U, s, d, 1, alpha_min=alpha_next, alpha_max=alpha_next))
 
-    return (reg_c, rho_c, eta_c)
+    return (alpha_c, rho_c, eta_c)
 
 
 def lcorner_mdf_gsvd(
-        U, X, LAM, MU, d, G, L, reg_init=None, tol=1.0e-16, maxiter=1200):
+        U, X, LAM, MU, d, G, L, alpha_init=None, tol=1.0e-16, maxiter=1200):
     """
     Determination of Tikhonov regularization parameter using L-curve criterion.
 
@@ -351,80 +351,81 @@ def lcorner_mdf_gsvd(
 
     Parameters
     ----------
-    U : array_like
+    U : array-like
         m-by-m matrix of data space basis vectors from the GSVD.
-    X : array_like
+    X : array-like
         n-by-n nonsingular matrix computed by the GSVD.
-    LAM : array_like
+    LAM : array-like
         m-by-n matrix, computed by the GSVD, with diagonal entries that
         may be shifted from the main diagonal.
-    MU : array_like
+    MU : array-like
         p-by-n diagonal matrix computed by the GSVD.
-    d : array_like
+    d : array-like
         The data vector.
-    G : array_like
+    G : array-like
         The system matrix (forward operator or design matrix).
-    L : array_like
+    L : array-like
         The roughening matrix.
-    reg_init : float (optional)
+    alpha_init : float (optional)
         An appropriate initial regularization parameter.
     tol : float
-        Absolute error in ``reg_c`` between iterations that is
+        Absolute error in ``alpha_c`` between iterations that is
         acceptable for convergence.
     maxiter : int
         Maximum number of iterations to perform.
 
     Returns
     -------
-    reg_c : float
+    alpha_c : float
         The value of regularization parameter corresponding to the
         corner of the L-curve.
     rho_c : float
-        The residual norm corresponding to ``reg_c``.
+        The residual norm corresponding to ``alpha_c``.
     eta_c : float
-        The solution norm/seminorm corresponding to ``reg_c``.
+        The solution norm/seminorm corresponding to ``alpha_c``.
 
     References
     ----------
     .. [1] Belge, M., Kilmer, M. E. & Miller, E. L. (2002), `Efficient
-        determination of multiple regularization parameters in a
-        generalized L-curve framework`, Inverse Problems, 18, 1161-1183.
+       determination of multiple regularization parameters in a
+       generalized L-curve framework`, Inverse Problems, 18, 1161-1183.
     """
 
     # Origin point O=(a,b)
-    rho, eta, reg_params = lcurve_gsvd(U, X, LAM, MU, d, G, L, 2)
-    a = np.log10(rho[np.argmin(reg_params)]**2)
-    b = np.log10(eta[np.argmax(reg_params)]**2)
+    rhos, etas, alphas = lcurve_gsvd(U, X, LAM, MU, d, G, L, 2)
+    a = np.log10(rhos[np.argmin(alphas)]**2)
+    b = np.log10(etas[np.argmax(alphas)]**2)
 
-    if not reg_init:
-        q = loglinspace(reg_params[0], reg_params[1], 9)
-        reg_init = q[4]
+    if not alpha_init:
+        q = loglinspace(alphas[0], alphas[1], 9)
+        alpha_init = q[4]
 
-    def f(reg_pre):
+    def f(alpha_pre):
         rho_pre, eta_pre, _ = lcurve_gsvd(
-            U, X, LAM, MU, d, G, L, 1, reg_min=reg_pre, reg_max=reg_pre)
+            U, X, LAM, MU, d, G, L, 1, alpha_min=alpha_pre,
+            alpha_max=alpha_pre)
         rho_pre = np.asscalar(rho_pre)
         eta_pre = np.asscalar(eta_pre)
         dum1 = (rho_pre/eta_pre)**2
         dum2 = np.log10(eta_pre**2) - b
         dum3 = np.log10(rho_pre**2) - a
-        reg_next = np.sqrt(dum1 * (dum2/dum3))
-        return reg_next
+        alpha_next = np.sqrt(dum1 * (dum2/dum3))
+        return alpha_next
 
-    reg_next = f(reg_init)
-    change = abs((reg_next/reg_init) - 1.0)
+    alpha_next = f(alpha_init)
+    change = abs((alpha_next/alpha_init) - 1.0)
 
     counter = 1
     while (change > tol) and (counter < maxiter):
-        reg_pre = reg_next
-        reg_next = f(reg_pre)
-        change = abs((reg_next/reg_pre) - 1.0)
+        alpha_pre = alpha_next
+        alpha_next = f(alpha_pre)
+        change = abs((alpha_next/alpha_pre) - 1.0)
         counter += 1
 
-    rho_c, eta_c, reg_c = map(np.asscalar, lcurve_gsvd(
-        U, X, LAM, MU, d, G, L, 1, reg_min=reg_next, reg_max=reg_next))
+    rho_c, eta_c, alpha_c = map(np.asscalar, lcurve_gsvd(
+        U, X, LAM, MU, d, G, L, 1, alpha_min=alpha_next, alpha_max=alpha_next))
 
-    return (reg_c, rho_c, eta_c)
+    return (alpha_c, rho_c, eta_c)
 
 
 def roughmat(n, order, full=True):
@@ -440,7 +441,7 @@ def roughmat(n, order, full=True):
     ----------
     n : int
         Number of data points.
-    order : int
+    order : int, {1, 2}
         The order of the derivative to approximate.
     full : bool
         If True (default), it computes the full matrix. Otherwise it
@@ -448,13 +449,13 @@ def roughmat(n, order, full=True):
 
     Returns
     -------
-    L : array_like or :py:class:`scipy.sparse.csr.csr_matrix`
+    L : array-like or :py:class:`scipy.sparse.csr.csr_matrix`
         The discrete differentiation matrix operator.
 
     References
     ----------
     .. [1] https://en.wikipedia.org/wiki/Sparse_matrix
-        #Compressed_sparse_row_.28CSR.2C_CRS_or_Yale_format.29
+       #Compressed_sparse_row_.28CSR.2C_CRS_or_Yale_format.29
     .. [2] http://netlib.org/linalg/html_templates/node91.html
     """
 
@@ -488,6 +489,97 @@ def roughmat(n, order, full=True):
     if full:
         return L.toarray()
     return L
+
+
+def lcurve_freq(
+        Gspec, Dspec, deltat, order, npoints, alpha_min, alpha_max):
+    """
+    Tikhonov regularization in the frequency domain.
+
+    Parameters
+    ----------
+    Gspec : array-like of length N
+        Discrete Fourier transform of the real-valued array of the
+        sampled impulse response **g**, i.e ``Gspec=np.fft.rfft(g)``.
+
+    Dspec : array-like of length N
+        Discrete Fourier transform of the real-valued array of the data
+        vector **d**, i.e. ``Dspec=np.fft.rfft(d)``.
+
+    deltat : float
+        Sampling interval in time/spatial domain.
+
+    order : int, {0, 1, 2}
+        The order of the derivative to approximate.
+
+    npoints : int
+        Number of logarithmically spaced regularization parameters.
+
+    alpha_min : float
+        If specified, minimum of the regularization parameters range.
+
+    alpha_max : float
+        If specified, maximum of the reqularization parameters range.
+
+    Returns
+    -------
+    rhos : array-like of length (npoints - 1)
+        Vector of residual norm `||GM-D||_2`.
+
+    etas : array-like of length (npoints - 1)
+        Vector of solution norm `||M||_2` or solution seminorm
+        `||LM||_2`.
+
+    alphas : array-like of length (npoints - 1)
+        Vector of corresponding regularization parameters.
+
+    models : array-like of shape (npoints, ntrans)
+        Array of predicted models for different regularization
+        parameters. The shape is ``(npoints, ntrans)``, where
+        ``ntrans = 2*(N-1)``, if ``N`` is even, and ``ntrans = 2*N + 1``,
+        if ``N`` is odd (``N`` is the length of ``Gspec`` and ``Dspec``).
+
+    References
+    ----------
+    .. [1] Aster, R., Borchers, B. & Thurber, C. (2011), `Parameter
+       Estimation and Inverse Problems`, Elsevier, pp 103-107.
+    """
+
+    if Gspec.size % 2 == 0:
+        ntrans = 2 * (Gspec.size-1)
+    else:
+        ntrans = 2*Gspec.size + 1
+
+    freqs = np.fft.rfftfreq(ntrans, d=deltat)
+    alphas = loglinspace(alpha_min, alpha_max, npoints)
+
+    GHD = np.conj(Gspec) * Dspec
+    GHG = np.conj(Gspec) * Gspec
+    k2p = np.power(2*np.pi*freqs, 2*order)
+
+    # Initialize storage spaces
+    rhos = np.zeros(npoints, dtype=np.float)
+    etas = np.zeros(npoints, dtype=np.float)
+    models = np.zeros((npoints, ntrans), dtype=np.float)
+
+    for i, alpha in enumerate(alphas):
+
+        # Predicted model; freq domain
+        Mf = GHD / (GHG + np.full_like(GHG, alpha*alpha*k2p))
+
+        # Predicted model; time/spatial domain
+        md = np.fft.irfft(Mf, n=ntrans)
+
+        # Store predicted model for each alpha
+        models[i, :] = md
+
+        # Keep track of the residual norm for each alpha
+        rhos[i] = nla.norm(Gspec*Mf - Dspec)
+
+        # Keep track of the model norm for each alpha
+        etas[i] = nla.norm(Mf)
+
+    return (rhos, etas, alphas, models)
 
 
 __all__ = """
