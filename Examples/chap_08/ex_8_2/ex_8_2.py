@@ -11,16 +11,20 @@ by R. Aster, B. Borchers, C. Thurber
 
 from __future__ import division, print_function
 
+from matplotlib.animation import FuncAnimation
 from matplotlib.backends.backend_pdf import PdfPages
 import matplotlib.pyplot as plt
 import numpy as np
 
 from peiplib import custompp   # noqa
+from peiplib import tikhonov as tikh
+from peiplib.plot import lcurve, tango_hex as tango
+from test_updatemodel import UpdateTikhonovModelFrequncy
 
 
 # ----------------------------------------------------------------------
 
-# --- Set up the basic problem parameters ---
+# ----- Set up the basic problem parameters -----
 
 # Time interval, sampling rate etc
 tmin, tmax = -5.0, 100.0
@@ -44,12 +48,12 @@ cntr1, cntr2 = 8.0, 25.0
 pdf = PdfPages('ex_8_2.pdf')
 
 
-# --- Generate time vector ---
+# ----- Generate time vector -----
 
 t = np.linspace(tmin, tmax, N)
 
 
-# --- Generate instrument impulse response as a critically-damped pulse ---
+# ----- Generate instrument impulse response as a critically-damped pulse ---
 
 g = np.zeros(N-1, dtype=np.float)
 for i in range(0, N-1):
@@ -72,7 +76,7 @@ mtrue = afun(1.0, cntr1, sig1, tt) + afun(0.5, cntr2, sig2, tt)
 # The model should be unit height
 mtrue /= mtrue.max()
 
-# --- Get the true and noisy data ---
+# ----- Get the true and noisy data -----
 
 d = np.convolve(g, mtrue, mode='full')
 dn = d + noise*np.random.randn(d.size)
@@ -119,7 +123,7 @@ for i, y in enumerate([d, dn]):
     plt.close()
 
 
-# --- Generate spectra ---
+# ----- Generate spectra -----
 
 
 def nextpow2(x):
@@ -190,27 +194,183 @@ for i, y in enumerate([mperf, mn]):
     plt.close()
 
 
-# --- Zeroth-order tikhonov regularization ---
+# ----- Zeroth-order Tikhonov regularization -----
 
 # Regularization parameters
-emin = -4
-emax = 4
-nl = 100
+emin_t0 = -2
+emax_t0 = 1
+da = 0.02
+alphas_t0 = 10**np.arange(emin_t0, emax_t0+da, da)
 
-alphas = 10**np.linspace(emin, emax, nl)
-mod_norm = np.zeros_like(alphas, dtype=np.float)
-res_norm = np.zeros_like(alphas, dtype=np.float)
-models = np.zeros((ntrans, alphas.size), dtype=np.dtype)
+# Animation of evolving solution (not saved)
+fig, ax = plt.subplots(1, 1)
+ax.plot(tt, mtrue, '--', c=tango['skyblue2'], lw=2)
+ax.set_xlabel('Time [s]')
+ax.set_ylabel(r'Acceleration [$\frac{m}{s^2}$]')
 
-for ialpha, alpha in enumerate(alphas):
-    Mf = (gspec.conj()*dspec) / \
-        (gspec.conj()*gspec+np.full_like(gspec, alpha**2))
+utm_t0 = UpdateTikhonovModelFrequncy(
+    ax, tt, gspec, dnspec, dt, 0, 150, 0.01, 10)
 
-    md = np.fft.irfft(Mf, n=ntrans)
+anim_t0 = FuncAnimation(
+    fig, utm_t0, frames=range(alphas_t0.size), init_func=utm_t0.init_func,
+    interval=100, blit=False, repeat=False)
+plt.show()
 
-    mod_norm[ialpha] = np.linalg.norm(md)
-    res_norm[ialpha] = np.linalg.norm(gspec*Mf - dspec)
-    models[:, ialpha] = md
+# Plot the L-curve with respect to zeroth-order regularization
+print(
+    'Displaying the L-curve for zeroth-order Tikhonov regularization (fig. 9)')
 
+alphac_t0, rhoc_t0, etac_t0 = tikh.lcorner_kappa(
+    utm_t0.rnorm, utm_t0.mnorm, alphas_t0)
+
+fig, ax = plt.subplots(1, 1)
+lcurve(
+    utm_t0.rnorm, utm_t0.mnorm, ax, reg_c=alphac_t0, rho_c=rhoc_t0,
+    eta_c=etac_t0, freqdomain=True)
+
+ax.set_title(r'\textbf{Fig. 9} Zeroth-order Tikhonov L-curve')
+pdf.savefig()
+plt.close()
+
+# Plot the suite of solutions
+print('Displaying the suite of zeroth-order regularized models (fig. 10)')
+
+scale_factor = 0.2
+
+fig, ax = plt.subplots(1, 1)
+colors = ('black', tango['scarletred2'])
+linewidths = (None, 2)
+
+for i in range(0, alphas_t0.size, 20):
+    alpha = alphas_t0[i]
+    vshift = np.log10(alpha)
+    x = utm_t0.xdata
+    y = utm_t0.ydata[i, 0:x.size]
+
+    ax.plot(x, vshift+scale_factor*mtrue, '--', c=tango['skyblue2'])
+
+    j = int(alpha == alphac_t0)
+    ax.plot(x, vshift+scale_factor*y, c=colors[j], lw=linewidths[j])
+
+# Highlight the selected solution
+vshift = np.log10(alphac_t0)
+idx = np.where(alphas_t0 == alphac_t0)
+
+ax.plot(
+    tt, vshift+scale_factor*mtrue, '--', c=tango['skyblue2'], lw=linewidths[1])
+
+ax.plot(
+    utm_t0.xdata,
+    vshift+scale_factor*utm_t0.ydata[idx].ravel()[:utm_t0.xdata.size],
+    c=colors[1], lw=linewidths[1])
+
+ax.set_xlabel('Time [s]')
+ax.set_ylabel(r'Log$_{10}(\alpha)$')
+ax.set_title(r'\textbf{Fig. 10} Zeroth-order Tikhonov models')
+pdf.savefig()
+plt.close()
+
+# Plot the best solution from zeroth-order Tikhonov regularization
+print('Displaying the preferred zeroth-order regularized model (fig. 11)')
+
+fig, ax = plt.subplots(1, 1)
+ax.plot(tt, mtrue, '--', c=tango['skyblue2'])
+ax.plot(utm_t0.xdata, utm_t0.ydata[idx].ravel()[:utm_t0.xdata.size])
+ax.set_xlabel('Time [s]')
+ax.set_ylabel(r'Acceleration [$\frac{m}{s^2}$]')
+ax.set_title(r'\textbf{Fig. 11} Preferred zeroth-order Tikhonov model')
+pdf.savefig()
+plt.close()
+
+
+# ----- 2nd-order Tikhonov regularization -----
+
+# Regularization parameters
+emin_t2 = -3
+emax_t2 = 2
+da = 0.02
+alphas_t2 = 10**np.arange(emin_t2, emax_t2+da, da)
+
+# Animation of evolving solution (not saved)
+fig, ax = plt.subplots(1, 1)
+ax.plot(tt, mtrue, '--', c=tango['skyblue2'], lw=2)
+ax.set_xlabel('Time [s]')
+ax.set_ylabel(r'Acceleration [$\frac{m}{s^2}$]')
+
+utm_t2 = UpdateTikhonovModelFrequncy(
+    ax, tt, gspec, dnspec, dt, 2, 250, 0.001, 100)
+
+anim_t2 = FuncAnimation(
+    fig, utm_t2, frames=range(alphas_t2.size), init_func=utm_t2.init_func,
+    interval=100, blit=False, repeat=False)
+plt.show()
+
+# Plot the L-curve with respect to zeroth-order regularization
+print(
+    'Displaying the L-curve for 2nd-order Tikhonov regularization (fig. 12)')
+
+alphac_t2, rhoc_t2, etac_t2 = tikh.lcorner_kappa(
+    utm_t2.rnorm, utm_t2.mnorm, alphas_t2)
+
+fig, ax = plt.subplots(1, 1)
+lcurve(
+    utm_t2.rnorm, utm_t2.mnorm, ax, reg_c=alphac_t2, rho_c=rhoc_t2,
+    eta_c=etac_t2, freqdomain=True, seminorm=True)
+
+ax.set_title(r'\textbf{Fig. 12} 2$^{nd}$-order Tikhonov L-curve')
+pdf.savefig()
+plt.close()
+
+# Plot the suite of solutions
+print('Displaying the suite of 2nd-order regularized models (fig. 13)')
+
+scale_factor = 0.2
+
+fig, ax = plt.subplots(1, 1)
+colors = ('black', tango['scarletred2'])
+linewidths = (None, 2)
+
+for i in range(0, alphas_t2.size, 20):
+    alpha = alphas_t2[i]
+    vshift = np.log10(alpha)
+    x = utm_t2.xdata
+    y = utm_t2.ydata[i, 0:x.size]
+
+    ax.plot(x, vshift+scale_factor*mtrue, '--', c=tango['skyblue2'])
+
+    j = int(alpha == alphac_t2)
+    ax.plot(x, vshift+scale_factor*y, c=colors[j], lw=linewidths[j])
+
+# Highlight the selected solution
+vshift = np.log10(alphac_t2)
+idx = np.where(alphas_t2 == alphac_t2)
+
+ax.plot(
+    tt, vshift+scale_factor*mtrue, '--', c=tango['skyblue2'],
+    lw=linewidths[1])
+
+ax.plot(
+    utm_t2.xdata,
+    vshift+scale_factor*utm_t2.ydata[idx].ravel()[:utm_t2.xdata.size],
+    c=colors[1],
+    lw=linewidths[1])
+
+ax.set_xlabel('Time [s]')
+ax.set_ylabel(r'Log$_{10}(\alpha)$')
+ax.set_title(r'\textbf{Fig. 13} 2$^{nd}$-order Tikhonov models')
+pdf.savefig()
+plt.close()
+
+# Plot the best solution from zeroth-order Tikhonov regularization
+print('Displaying the preferred 2nd-order regularized model (fig. 14)')
+
+fig, ax = plt.subplots(1, 1)
+ax.plot(tt, mtrue, '--', c=tango['skyblue2'])
+ax.plot(utm_t2.xdata, utm_t2.ydata[idx].ravel()[:utm_t2.xdata.size])
+ax.set_xlabel('Time [s]')
+ax.set_ylabel(r'Acceleration [$\frac{m}{s^2}$]')
+ax.set_title(r'\textbf{Fig. 14} Preferred 2$^{nd}$-order Tikhonov model')
+pdf.savefig()
+plt.close()
 
 pdf.close()
