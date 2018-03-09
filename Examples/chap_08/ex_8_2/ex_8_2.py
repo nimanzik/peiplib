@@ -19,6 +19,7 @@ import numpy as np
 from peiplib import custompp   # noqa
 from peiplib import tikhonov as tikh
 from peiplib.plot import lcurve, tango_hex as tango
+
 from test_updatemodel import UpdateTikhonovModelFrequncy
 
 
@@ -35,7 +36,7 @@ fs = 1.0 / dt
 T0 = 10.0
 
 # Noise standard deviation
-noise = 0.05
+noise = 0.1
 
 # Discretizing values for `M` and `N` (210 data points)
 M = N = 211
@@ -196,11 +197,9 @@ for i, y in enumerate([mperf, mn]):
 
 # ----- Zeroth-order Tikhonov regularization -----
 
-# Regularization parameters
-emin_t0 = -2
-emax_t0 = 1
-da = 0.02
-alphas_t0 = 10**np.arange(emin_t0, emax_t0+da, da)
+npoints = 150
+alpha_min = 0.01
+alpha_max = 10
 
 # Animation of evolving solution (not saved)
 fig, ax = plt.subplots(1, 1)
@@ -209,11 +208,11 @@ ax.set_xlabel('Time [s]')
 ax.set_ylabel(r'Acceleration [$\frac{m}{s^2}$]')
 
 utm_t0 = UpdateTikhonovModelFrequncy(
-    ax, tt, gspec, dnspec, dt, 0, 150, 0.01, 10)
+    ax, tt, gspec, dnspec, dt, 0, npoints, alpha_min, alpha_max)
 
 anim_t0 = FuncAnimation(
-    fig, utm_t0, frames=range(alphas_t0.size), init_func=utm_t0.init_func,
-    interval=100, blit=False, repeat=False)
+    fig, utm_t0, frames=npoints, init_func=utm_t0.init_func,
+    interval=10, blit=False, repeat=False)
 plt.show()
 
 # Plot the L-curve with respect to zeroth-order regularization
@@ -221,7 +220,7 @@ print(
     'Displaying the L-curve for zeroth-order Tikhonov regularization (fig. 9)')
 
 alphac_t0, rhoc_t0, etac_t0 = tikh.lcorner_kappa(
-    utm_t0.rnorm, utm_t0.mnorm, alphas_t0)
+    utm_t0.rnorm, utm_t0.mnorm, utm_t0.alphas)
 
 fig, ax = plt.subplots(1, 1)
 lcurve(
@@ -241,8 +240,8 @@ fig, ax = plt.subplots(1, 1)
 colors = ('black', tango['scarletred2'])
 linewidths = (None, 2)
 
-for i in range(0, alphas_t0.size, 20):
-    alpha = alphas_t0[i]
+for i in range(0, npoints, 15):
+    alpha = utm_t0.alphas[i]
     vshift = np.log10(alpha)
     x = utm_t0.xdata
     y = utm_t0.ydata[i, 0:x.size]
@@ -254,7 +253,7 @@ for i in range(0, alphas_t0.size, 20):
 
 # Highlight the selected solution
 vshift = np.log10(alphac_t0)
-idx = np.where(alphas_t0 == alphac_t0)
+idx = np.where(utm_t0.alphas == alphac_t0)
 
 ax.plot(
     tt, vshift+scale_factor*mtrue, '--', c=tango['skyblue2'], lw=linewidths[1])
@@ -285,11 +284,9 @@ plt.close()
 
 # ----- 2nd-order Tikhonov regularization -----
 
-# Regularization parameters
-emin_t2 = -3
-emax_t2 = 2
-da = 0.02
-alphas_t2 = 10**np.arange(emin_t2, emax_t2+da, da)
+npoints = 250
+alpha_min = 0.001
+alpha_max = 100
 
 # Animation of evolving solution (not saved)
 fig, ax = plt.subplots(1, 1)
@@ -301,8 +298,8 @@ utm_t2 = UpdateTikhonovModelFrequncy(
     ax, tt, gspec, dnspec, dt, 2, 250, 0.001, 100)
 
 anim_t2 = FuncAnimation(
-    fig, utm_t2, frames=range(alphas_t2.size), init_func=utm_t2.init_func,
-    interval=100, blit=False, repeat=False)
+    fig, utm_t2, frames=npoints, init_func=utm_t2.init_func,
+    interval=10, blit=False, repeat=False)
 plt.show()
 
 # Plot the L-curve with respect to zeroth-order regularization
@@ -310,7 +307,7 @@ print(
     'Displaying the L-curve for 2nd-order Tikhonov regularization (fig. 12)')
 
 alphac_t2, rhoc_t2, etac_t2 = tikh.lcorner_kappa(
-    utm_t2.rnorm, utm_t2.mnorm, alphas_t2)
+    utm_t2.rnorm, utm_t2.mnorm, utm_t2.alphas)
 
 fig, ax = plt.subplots(1, 1)
 lcurve(
@@ -330,8 +327,8 @@ fig, ax = plt.subplots(1, 1)
 colors = ('black', tango['scarletred2'])
 linewidths = (None, 2)
 
-for i in range(0, alphas_t2.size, 20):
-    alpha = alphas_t2[i]
+for i in range(0, npoints, 25):
+    alpha = utm_t2.alphas[i]
     vshift = np.log10(alpha)
     x = utm_t2.xdata
     y = utm_t2.ydata[i, 0:x.size]
@@ -343,7 +340,7 @@ for i in range(0, alphas_t2.size, 20):
 
 # Highlight the selected solution
 vshift = np.log10(alphac_t2)
-idx = np.where(alphas_t2 == alphac_t2)
+idx = np.where(utm_t2.alphas == alphac_t2)
 
 ax.plot(
     tt, vshift+scale_factor*mtrue, '--', c=tango['skyblue2'],

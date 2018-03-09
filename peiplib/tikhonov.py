@@ -584,7 +584,7 @@ def lcurve_freq(
     return (rhos, etas, alphas, models)
 
 
-class UpdateModelFrequncy(object):
+class UpdateFrequncyModel(object):
 
     def __init__(
             self, ax, xdata, Gspec, Dspec, deltat, order, npoints,
@@ -602,8 +602,8 @@ class UpdateModelFrequncy(object):
             self.ntrans = (2*Gspec.size) - 1
         self.freqs = np.fft.rfftfreq(self.ntrans, d=self.deltat)
         self.ydata = np.zeros((self.alphas.size, self.ntrans), dtype=np.float)
-        self.rnorm = np.zeros(npoints, dtype=np.float)
-        self.mnorm = np.zeros(npoints, dtype=np.float)
+        self.rhos = np.zeros(npoints, dtype=np.float)
+        self.etas = np.zeros(npoints, dtype=np.float)
         self.__GHD = np.conj(Gspec) * Dspec
         self.__GHG = np.conj(Gspec) * Gspec
         self.__k2p = np.power(2*np.pi*self.freqs, 2*order)
@@ -629,10 +629,10 @@ class UpdateModelFrequncy(object):
         self.ydata[i, :] = md
 
         # Keep track of the residual norm for each alpha
-        self.rnorm[i] = nla.norm(self.Gspec*Mf-self.Dspec)
+        self.rhos[i] = nla.norm(self.Gspec*Mf-self.Dspec)
 
-        # Keep track of the model norm for each alpha
-        self.mnorm[i] = nla.norm(Mf)
+        # Keep track of the model norm/seminorm for each alpha
+        self.etas[i] = nla.norm(Mf)
 
         # Plot the newly fit model
         self.line.set_data(self.xdata, md[:len(self.xdata)])
@@ -648,4 +648,6 @@ lcorner_kappa
 lcorner_mdf_svd
 lcorner_mdf_gsvd
 roughmat
+lcurve_freq
+UpdateFrequncyModel
 """.split()
