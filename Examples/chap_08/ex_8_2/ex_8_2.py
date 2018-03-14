@@ -36,7 +36,7 @@ fs = 1.0 / dt
 T0 = 10.0
 
 # Noise standard deviation
-noise = 0.1
+noise = 0.05
 
 # Discretizing values for `M` and `N` (210 data points)
 M = N = 211
