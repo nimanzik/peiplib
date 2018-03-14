@@ -5,6 +5,7 @@ Copyright (c) 2017 Nima Nooshiri <nima.nooshiri@gfz-potsdam.de>
 """
 
 from itertools import count
+from time import time
 
 import numpy as np
 from numpy import linalg as nla
@@ -57,6 +58,8 @@ def lcurve_svd(U, s, d, npoints, alpha_min=None, alpha_max=None):
     smin_ratio = 16 * np.finfo(np.float).eps
     start = alpha_max or s[0]
     stop = alpha_min or max(s[-1], s[0]*smin_ratio)
+    # alpha[0] will be s[0]
+    start, stop = sorted((start, stop), reverse=True)
     alphas = loglinspace(start, stop, npoints)
 
     m, n = U.shape
@@ -158,8 +161,7 @@ def lcurve_gsvd(
         gmin_ratio = 16 * np.finfo(np.float).eps
         if m <= n:
             # The under-determined or square case.
-            k = n - m
-            i1, i2 = sorted((k, p-1))
+            i1, i2 = sorted((n-m, p-1))
             start = alpha_max or gammas[i2]
             stop = alpha_min or max(gammas[i1], gammas[i2]*gmin_ratio)
         else:
@@ -167,6 +169,8 @@ def lcurve_gsvd(
             start = alpha_max or gammas[p-1]
             stop = alpha_min or max(gammas[0], gammas[p-1]*gmin_ratio)
 
+    # alpha[0] will be s[0]
+    start, stop = sorted((start, stop), reverse=True)
     alphas = loglinspace(start, stop, npoints)
 
     if m > n:
@@ -237,10 +241,9 @@ def lcorner_kappa(rhos, etas, alphas):
        #Triangle_centers_on_the_circumcircle_of_triangle_ABC
     """
 
-    xs = np.log10(rhos)
-    ys = np.log10(etas)
+    xs = np.log(rhos)
+    ys = np.log(etas)
 
-    # Side lengths for each triangle
     x1 = xs[0:-2]
     x2 = xs[1:-1]
     x3 = xs[2:]
@@ -259,7 +262,7 @@ def lcorner_kappa(rhos, etas, alphas):
     # Curvature of circumscribing circle
     kappa = (4.0*A) / (a*b*c)
 
-    icorner = np.nanargmax(kappa)
+    icorner = np.nanargmax(np.hstack([0., kappa, 0.]))
     alpha_c = alphas[icorner]
     rho_c = rhos[icorner]
     eta_c = etas[icorner]
@@ -534,12 +537,6 @@ def lcurve_freq(
     alphas : array-like of length (npoints - 1)
         Vector of corresponding regularization parameters.
 
-    models : array-like of shape (npoints, ntrans)
-        Array of predicted models for different regularization
-        parameters. The shape is ``(npoints, ntrans)``, where
-        ``ntrans = 2*(N-1)``, if ``N`` is even, and ``ntrans = 2*N - 1``,
-        if ``N`` is odd (``N`` is the length of ``Gspec`` and ``Dspec``).
-
     References
     ----------
     .. [1] Aster, R., Borchers, B. & Thurber, C. (2011), `Parameter
@@ -553,27 +550,26 @@ def lcurve_freq(
         ntrans = (2*N) - 1
 
     freqs = np.fft.rfftfreq(ntrans, d=deltat)
-    alphas = loglinspace(alpha_min, alpha_max, npoints)
+
+    alpha_min, alpha_max = sorted((alpha_min, alpha_max), reverse=True)
+    alphas = loglinspace(alpha_max, alpha_min, npoints)
 
     GHD = np.conj(Gspec) * Dspec
     GHG = np.conj(Gspec) * Gspec
-    k2p = np.power(2*np.pi*freqs, 2*order)
+    k2p = np.power(2*np.pi*freqs, 2*order, dtype=np.complex)
 
     # Initialize storage spaces
     rhos = np.zeros(npoints, dtype=np.float)
     etas = np.zeros(npoints, dtype=np.float)
-    models = np.zeros((npoints, ntrans), dtype=np.float)
 
     for i, alpha in enumerate(alphas):
 
         # Predicted model; freq domain
-        Mf = GHD / (GHG + np.full_like(GHG, alpha*alpha*k2p))
-
-        # Predicted model; time/spatial domain
-        md = np.fft.irfft(Mf, n=ntrans)
-
-        # Store predicted model for each alpha
-        models[i, :] = md
+        numer = GHD
+        denom = GHG + np.full_like(GHG, alpha*alpha*k2p)
+        idx = np.where((np.abs(numer) != 0) & (np.abs(denom) != 0))
+        Mf = np.zeros_like(GHG, dtype=np.complex)
+        Mf[idx] = numer[idx] / denom[idx]
 
         # Keep track of the residual norm for each alpha
         rhos[i] = nla.norm(Gspec*Mf - Dspec)
@@ -581,7 +577,7 @@ def lcurve_freq(
         # Keep track of the model norm for each alpha
         etas[i] = nla.norm(Mf)
 
-    return (rhos, etas, alphas, models)
+    return (rhos, etas, alphas)
 
 
 class UpdateFrequncyModel(object):
@@ -590,7 +586,7 @@ class UpdateFrequncyModel(object):
             self, ax, xdata, Gspec, Dspec, deltat, order, npoints,
             alpha_min, alpha_max):
         self.ax = ax
-        self.xdata = xdata
+        self.xdata = np.asarray(xdata)
         self.Gspec = Gspec
         self.Dspec = Dspec
         self.deltat = deltat
@@ -601,7 +597,8 @@ class UpdateFrequncyModel(object):
         else:
             self.ntrans = (2*Gspec.size) - 1
         self.freqs = np.fft.rfftfreq(self.ntrans, d=self.deltat)
-        self.ydata = np.zeros((self.alphas.size, self.ntrans), dtype=np.float)
+        self.ndata = self.xdata.size
+        self.ydata = np.zeros((npoints, self.ndata), dtype=np.float)
         self.rhos = np.zeros(npoints, dtype=np.float)
         self.etas = np.zeros(npoints, dtype=np.float)
         self.__GHD = np.conj(Gspec) * Dspec
@@ -619,14 +616,17 @@ class UpdateFrequncyModel(object):
         alpha = self.alphas[i]
 
         # Predicted model; freq domain
-        Mf = self.__GHD / \
-            (self.__GHG + np.full_like(self.__GHG, alpha*alpha*self.__k2p))
+        numer = self.__GHD
+        denom = self.__GHG + np.full_like(self.__GHG, alpha*alpha*self.__k2p)
+        idx = np.where((np.abs(numer) != 0) & (np.abs(denom) != 0))
+        Mf = np.zeros_like(self.__GHG, dtype=np.complex)
+        Mf[idx] = numer[idx] / denom[idx]
 
         # Predicted model; time domain
-        md = np.fft.irfft(Mf, n=self.ntrans)
+        md = np.fft.irfft(Mf)
 
         # Store predicted model for each alpha
-        self.ydata[i, :] = md
+        self.ydata[i] = md[:self.ndata]
 
         # Keep track of the residual norm for each alpha
         self.rhos[i] = nla.norm(self.Gspec*Mf-self.Dspec)

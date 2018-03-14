@@ -66,6 +66,51 @@ def solve_tikh(G, L, alpha, d):
     return np.dot(Ghash, d)
 
 
+def solve_tikh_freqdomain(Gspec, Dspec, deltat, order, alpha):
+    """
+    Return the solution of Tikhonov regularization in frequency domain.
+
+    Parameters
+    ----------
+    Gspec : array-like of length N
+        Discrete Fourier transform of the real-valued array of the
+        sampled impulse response **g**, i.e ``Gspec=np.fft.rfft(g)``.
+
+    Dspec : array-like of length N
+        Discrete Fourier transform of the real-valued array of the data
+        vector **d**, i.e. ``Dspec=np.fft.rfft(d)``.
+
+    deltat : float
+        Sampling interval in time/spatial domain.
+
+    order : int, {0, 1, 2}
+        The order of the derivative to approximate.
+
+    alpha : float
+        The reqularization parameter.
+
+    Returns
+    -------
+    Mf : array_like
+        The model spectrum (regularization solution).
+    """
+    N = Gspec.size
+    if N % 2 == 0:
+        ntrans = 2 * (N-1)
+    else:
+        ntrans = (2*N) - 1
+
+    freqs = np.fft.rfftfreq(ntrans, d=deltat)
+    k2p = np.power(2*np.pi*freqs, 2*order, dtype=np.complex)
+
+    numer = np.conj(Gspec) * Dspec
+    denom = np.conj(Gspec) * Gspec + np.full_like(numer, alpha*alpha*k2p)
+    idx = np.where((np.abs(numer) != 0) & (np.abs(denom) != 0))
+    Mf = np.zeros_like(numer, dtype=np.complex)
+    Mf[idx] = numer[idx] / denom[idx]
+    return Mf
+
+
 class MatrixColumnMismatch(Exception):
     pass
 
