@@ -5,7 +5,6 @@ Copyright (c) 2017 Nima Nooshiri <nima.nooshiri@gfz-potsdam.de>
 """
 
 from itertools import count
-from time import time
 
 import numpy as np
 from numpy import linalg as nla
