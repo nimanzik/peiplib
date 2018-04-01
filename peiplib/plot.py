@@ -102,16 +102,16 @@ def get_cbar_axes(ax, position='right', size='5%', pad='3%'):
 
 
 def lcurve(
-        rho, eta, ax, reg_c=None, rho_c=None, eta_c=None, seminorm=False,
+        rhos, etas, ax, reg_c=None, rho_c=None, eta_c=None, seminorm=False,
         mdf_orig=False, mc=None, freqdomain=False):
     """
     Plot L-curve (trade-off curve).
 
     Parameters
     ----------
-    rho : array_like
+    rhos : array_like
         Vector of residual norm `||Gm-d||_2`.
-    eta : array_like
+    etas : array_like
         Vector of solution norm `||m||_2` or seminorm `||LM||_2`.
     ax: :py:class:`matplotlib.axes._subplots.AxesSubplot`
         Set default axes instance.
@@ -137,7 +137,7 @@ def lcurve(
     ax.set_xscale('log', nonposx='clip')
     ax.set_yscale('log', nonposy='clip')
 
-    ax.plot(rho, eta)
+    ax.plot(rhos, etas)
 
     ls = ':'
     lw = 1.0
@@ -150,15 +150,15 @@ def lcurve(
         ax.annotate(
             "",
             xy=(rho_c, eta_c), xycoords='data',
-            xytext=(rho[-1], eta[0]), textcoords='data',
+            xytext=(rhos[-1], etas[0]), textcoords='data',
             arrowprops=dict(
                 arrowstyle='-|>', connectionstyle='arc3', facecolor='black'),)
 
-        ax.axvline(x=rho[-1], ymax=0.95, linestyle=ls, color=lc, lw=lw)
+        ax.axvline(x=rhos[-1], ymax=0.95, linestyle=ls, color=lc, lw=lw)
 
-        ax.axhline(y=eta[0], xmax=0.95, linestyle=ls, color=lc, lw=lw)
+        ax.axhline(y=etas[0], xmax=0.95, linestyle=ls, color=lc, lw=lw)
 
-        ax.plot(rho[-1], eta[0], 'ko', ms=ms)
+        ax.plot(rhos[-1], etas[0], 'ko', ms=ms)
 
     # L-curve corner
     if rho_c and eta_c:
@@ -173,7 +173,7 @@ def lcurve(
 
         if reg_c:
             ax.text(
-                1.01*rho_c, 1.1*eta_c,
+                rho_c+(r-l)*0.01, eta_c+(t-b)*0.01,
                 r'$\alpha=$%s' % nice_sci_notation(reg_c))
 
         ax.set_xlim(l, r)
