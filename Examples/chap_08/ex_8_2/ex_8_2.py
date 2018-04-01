@@ -295,7 +295,7 @@ ax.set_xlabel('Time [s]')
 ax.set_ylabel(r'Acceleration [$\frac{m}{s^2}$]')
 
 utm_t2 = UpdateTikhonovModelFrequncy(
-    ax, tt, gspec, dnspec, dt, 2, 250, 0.001, 100)
+    ax, tt, gspec, dnspec, dt, 2, npoints, alpha_min, alpha_max)
 
 anim_t2 = FuncAnimation(
     fig, utm_t2, frames=npoints, init_func=utm_t2.init_func,
