@@ -187,7 +187,8 @@ def lcurve(
 
     # Set ylabel
     if seminorm and freqdomain:
-        ax.set_ylabel(r'Solution seminorm $\Vert \mathcal{LM} \Vert_{2}$')
+        ax.set_ylabel(
+            r'Solution seminorm $\Vert \bf{K}^{p}\mathcal{M} \Vert_{2}$')
     elif seminorm and not freqdomain:
         ax.set_ylabel(r'Solution seminorm $\Vert \mathbf{Lm} \Vert_{2}$')
     elif not seminorm and freqdomain:
