@@ -1,5 +1,6 @@
 *.pyc
 *.pdf
+*.png
 *.swp
 build/
 dist/
