@@ -223,9 +223,9 @@ def picard(U, s, d, ax):
     x = range(k)
     ax.semilogy(x, s, '-.', label=r'$s_i$')
     ax.semilogy(
-        x, fcoef, 'o', label=r'$|\textbf{U}_{.,i}^{T} \textbf{d}|$')
+        x, fcoef, 'o', label=r'$\vert$U$_{.,i}^{T}$ d$\vert$')
     ax.semilogy(
-        x, scoef, 'x', label=r'$|\textbf{U}_{.,i}^{T} \textbf{d}|/s_{i}$')
+        x, scoef, 'x', label=r'$\vert$U$_{.,i}^{T}$ d$\vert$/s$_{i}$')
     ax.legend()
     ax.set_xlabel(r'Index, $i$')
     ax.set_xticks(np.linspace(0, k, 5))

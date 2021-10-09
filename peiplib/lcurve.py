@@ -1,20 +1,17 @@
 """
-Tikhonov Regularization tools.
+L-curve criteria.
 
-Copyright (c) 2017 Nima Nooshiri <nima.nooshiri@gfz-potsdam.de>
+Copyright (c) 2021 Nima Nooshiri (@nimanzik)
 """
-
-from itertools import count
 
 import numpy as np
 from numpy import linalg as nla
-from scipy.sparse import csr_matrix
 
 from peiplib.plot import nice_sci_notation
 from peiplib.util import loglinspace
 
 
-def lcurve_svd(U, s, d, npoints, alpha_min=None, alpha_max=None):
+def tikh_svd(U, s, d, npoints, alpha_min=None, alpha_max=None):
     """
     L-curve parameters for Tikhonov standard-form regularization.
 
@@ -54,11 +51,10 @@ def lcurve_svd(U, s, d, npoints, alpha_min=None, alpha_max=None):
        Inverse Problems in Electrocardiology, pp 119-142.
     """
 
-    smin_ratio = 16 * np.finfo(np.float).eps
+    smin_ratio = 16 * np.finfo(np.float64).eps
     start = alpha_max or s[0]
-    stop = alpha_min or max(s[-1], s[0]*smin_ratio)
-    # alpha[0] will be s[0]
-    start, stop = sorted((start, stop), reverse=True)
+    stop = alpha_min or max(s[-1], s[0] * smin_ratio)
+    start, stop = sorted((start, stop), reverse=True)   # alpha[0] will be s[0]
     alphas = loglinspace(start, stop, npoints)
 
     m, n = U.shape
@@ -71,29 +67,29 @@ def lcurve_svd(U, s, d, npoints, alpha_min=None, alpha_max=None):
     d_proj = np.dot(U.T, d)
     dr = nla.norm(d)**2 - nla.norm(d_proj)**2
 
-    d_proj = d_proj[0:p]
+    d_proj = d_proj[:p]
 
     # Scale series terms by singular values
     d_proj_scale = d_proj / s
 
     # Initialize storage space
-    etas = np.zeros(npoints, dtype=np.float)
+    etas = np.zeros(npoints, dtype=np.float64)
     rhos = np.zeros_like(etas)
 
     s2 = s**2
     for i in range(npoints):
         f = s2 / (s2 + alphas[i]**2)
         etas[i] = nla.norm(f * d_proj_scale)
-        rhos[i] = nla.norm((1-f) * d_proj)
+        rhos[i] = nla.norm((1 - f) * d_proj)
 
-    # If we couldn't match the data exactly add the projection induced misfit
+    # If we couldn't match the data exactly add the projection-induced misfit
     if (m > n) and (dr > 0):
         rhos = np.sqrt(rhos**2 + dr)
 
     return (rhos, etas, alphas)
 
 
-def lcurve_gsvd(
+def tikh_gsvd(
         U, X, LAM, MU, d, G, L, npoints, alpha_min=None, alpha_max=None):
     """
     L-curve parameters for Tikhonov general-form regularization.
@@ -149,15 +145,15 @@ def lcurve_gsvd(
     if len(d.shape) == 2:
         d = d.reshape(d.size,)
 
-    lams = np.sqrt(np.diag(np.dot(LAM.T, LAM)))
-    mus = np.sqrt(np.diag(np.dot(MU.T, MU)))
+    lams = np.sqrt(np.diag(LAM.T @ LAM))
+    mus = np.sqrt(np.diag(MU.T @ MU))
     gammas = lams / mus
 
     if alpha_min and alpha_max:
         start = alpha_max
         stop = alpha_min
     else:
-        gmin_ratio = 16 * np.finfo(np.float).eps
+        gmin_ratio = 16 * np.finfo(np.float64).eps
         if m <= n:
             # The under-determined or square case.
             i1, i2 = sorted((n-m, p-1))
@@ -178,7 +174,7 @@ def lcurve_gsvd(
         k = n - m
 
     # Initialization.
-    etas = np.zeros(npoints, dtype=np.float)
+    etas = np.zeros(npoints, dtype=np.float64)
     rhos = np.zeros_like(etas)
 
     # Solve for each solution.
@@ -186,7 +182,7 @@ def lcurve_gsvd(
     for ireg in range(npoints):
 
         # Series filter coeficients for this regularization parameter.
-        f = np.zeros(n, dtype=np.float)
+        f = np.zeros(n, dtype=np.float64)
         for igam in range(k, n):
             gam = gammas[igam]
 
@@ -207,7 +203,7 @@ def lcurve_gsvd(
     return (rhos, etas, alphas)
 
 
-def lcorner_kappa(rhos, etas, alphas):
+def corner_maxcurv(rhos, etas, alphas):
     """
     Determination of Tikhonov regularization parameter using L-curve criterion.
 
@@ -224,52 +220,59 @@ def lcorner_kappa(rhos, etas, alphas):
 
     Returns
     -------
-    alpha_c : float
+    rho_corner : float
+        The residual norm corresponding to ``alpha_corner``.
+    eta_corner : float
+        The solution norm/seminorm corresponding to ``alpha_corner``.
+    alpha_corner : float
         The value of regularization parameter corresponding to the
         corner of the L-curve (i.e. the value of ``alphas`` with
         maximum curvature).
-    rho_c : float
-        The residual norm corresponding to ``alpha_c``.
-    eta_c : float
-        The solution norm/seminorm corresponding to ``alpha_c``.
 
     References
     ----------
-    .. [1] https://de.mathworks.com/matlabcentral/answers/284245-matlab-code-for-computing-curvature-equation#answer_222173
-    .. [2] https://en.wikipedia.org/wiki/Circumscribed_circle
-       #Triangle_centers_on_the_circumcircle_of_triangle_ABC
+    .. [1] https://de.mathworks.com/matlabcentral/answers/284245-matlab-code-for-computing-curvature-equation#answer_222173   # noqa
+    .. [2] https://en.wikipedia.org/wiki/Circumscribed_circle#Triangle_centers_on_the_circumcircle_of_triangle_ABC   # noqa
     """
 
     xs = np.log(rhos)
     ys = np.log(etas)
 
-    x1 = xs[0:-2]
+    x1 = xs[:-2]
     x2 = xs[1:-1]
     x3 = xs[2:]
-    y1 = ys[0:-2]
+    y1 = ys[:-2]
     y2 = ys[1:-1]
     y3 = ys[2:]
 
     # The side length for each triangle
-    a = np.sqrt((x1-x2)**2 + (y1-y2)**2)
-    b = np.sqrt((x2-x3)**2 + (y2-y3)**2)
-    c = np.sqrt((x3-x1)**2 + (y3-y1)**2)
+    a = np.sqrt((x1 - x2)**2 + (y1 - y2)**2)
+    b = np.sqrt((x2 - x3)**2 + (y2 - y3)**2)
+    c = np.sqrt((x3 - x1)**2 + (y3 - y1)**2)
 
-    # Area of triangles
-    A = 0.5 * abs((x1-x2)*(y3-y2) - (y1-y2)*(x3-x2))
+    # Semi-perimiter
+    s = (a + b + c) / 2.0
 
-    # Curvature of circumscribing circle
-    kappa = (4.0*A) / (a*b*c)
+    # Area of triangles (Herron's formula)
+    areas = np.sqrt(s * (s - a) * (s - b) * (s - c))
 
-    icorner = np.nanargmax(np.hstack([0., kappa, 0.]))
-    alpha_c = alphas[icorner]
-    rho_c = rhos[icorner]
-    eta_c = etas[icorner]
+    # The radius of each circle
+    radii = (a * b * c) / (4.0 * areas)
 
-    return (alpha_c, rho_c, eta_c)
+    # The curvature for each estimate for each value which is the
+    # reciprocal of its circumscribed radius. Since there aren't
+    # circles for the end points they have no curvature.
+    kappa = np.hstack([0.0, 1.0 / radii, 0.0])
+
+    i_corner = np.nanargmax(np.abs(kappa[1:-1]))
+    alpha_corner = alphas[i_corner]
+    rho_corner = rhos[i_corner]
+    eta_corner = etas[i_corner]
+
+    return (rho_corner, eta_corner, alpha_corner)
 
 
-def lcorner_mdf_svd(U, s, d, alpha_init=None, tol=1.0e-16, maxiter=1200):
+def corner_mdf_svd(U, s, d, alpha_init=None, tol=1.0e-16, maxiter=1200):
     """
     Determination of Tikhonov regularization parameter using L-curve criterion.
 
@@ -286,30 +289,30 @@ def lcorner_mdf_svd(U, s, d, alpha_init=None, tol=1.0e-16, maxiter=1200):
     alpha_init : float (optional)
         An appropriate initial regularization parameter.
     tol : float
-        Absolute error in ``alpha_c`` between iterations that is
+        Absolute error in ``alpha_corner`` between iterations that is
         acceptable for convergence.
     maxiter : int
         Maximum number of iterations to perform.
 
     Returns
     -------
-    alpha_c : float
+    alpha_corner : float
         The value of regularization parameter corresponding to the
         corner of the L-curve.
-    rho_c : float
-        The residual norm corresponding to ``alpha_c``.
-    eta_c : float
-        The solution norm/seminorm corresponding to ``alpha_c``.
+    rho_corner : float
+        The residual norm corresponding to ``alpha_corner``.
+    eta_corner : float
+        The solution norm/seminorm corresponding to ``alpha_corner``.
 
     References
     ----------
-    .. [1] Belge, M., Kilmer, M. E. & Miller, E. L. (2002), `Efficient
+    .. [1] Belgey, M., Kilmerz, M. E. & Miller, E. L. (2002), `Efficient
        determination of multiple regularization parameters in a
        generalized L-curve framework`, Inverse Problems, 18, 1161-1183.
     """
 
     # Origin point O=(a,b)
-    rhos, etas, alphas = lcurve_svd(U, s, d, 2)
+    rhos, etas, alphas = tikh_svd(U, s, d, 2)
     a = np.log10(rhos[np.argmin(alphas)]**2)
     b = np.log10(etas[np.argmax(alphas)]**2)
 
@@ -318,7 +321,7 @@ def lcorner_mdf_svd(U, s, d, alpha_init=None, tol=1.0e-16, maxiter=1200):
         alpha_init = q[1]
 
     def f(alpha_pre):
-        rho_pre, eta_pre, _ = lcurve_svd(
+        rho_pre, eta_pre, _ = tikh_svd(
             U, s, d, 1, alpha_min=alpha_pre, alpha_max=alpha_pre)
         rho_pre = np.asscalar(rho_pre)
         eta_pre = np.asscalar(eta_pre)
@@ -338,14 +341,14 @@ def lcorner_mdf_svd(U, s, d, alpha_init=None, tol=1.0e-16, maxiter=1200):
         change = abs((alpha_next/alpha_pre) - 1.0)
         counter += 1
 
-    rho_c, eta_c, alpha_c = map(
+    rho_corner, eta_corner, alpha_corner = map(
         np.asscalar,
-        lcurve_svd(U, s, d, 1, alpha_min=alpha_next, alpha_max=alpha_next))
+        tikh_svd(U, s, d, 1, alpha_min=alpha_next, alpha_max=alpha_next))
 
-    return (alpha_c, rho_c, eta_c)
+    return (alpha_corner, rho_corner, eta_corner)
 
 
-def lcorner_mdf_gsvd(
+def corner_mdf_gsvd(
         U, X, LAM, MU, d, G, L, alpha_init=None, tol=1.0e-16, maxiter=1200):
     """
     Determination of Tikhonov regularization parameter using L-curve criterion.
@@ -372,20 +375,20 @@ def lcorner_mdf_gsvd(
     alpha_init : float (optional)
         An appropriate initial regularization parameter.
     tol : float
-        Absolute error in ``alpha_c`` between iterations that is
+        Absolute error in ``alpha_corner`` between iterations that is
         acceptable for convergence.
     maxiter : int
         Maximum number of iterations to perform.
 
     Returns
     -------
-    alpha_c : float
+    alpha_corner : float
         The value of regularization parameter corresponding to the
         corner of the L-curve.
-    rho_c : float
-        The residual norm corresponding to ``alpha_c``.
-    eta_c : float
-        The solution norm/seminorm corresponding to ``alpha_c``.
+    rho_corner : float
+        The residual norm corresponding to ``alpha_corner``.
+    eta_corner : float
+        The solution norm/seminorm corresponding to ``alpha_corner``.
 
     References
     ----------
@@ -395,7 +398,7 @@ def lcorner_mdf_gsvd(
     """
 
     # Origin point O=(a,b)
-    rhos, etas, alphas = lcurve_gsvd(U, X, LAM, MU, d, G, L, 2)
+    rhos, etas, alphas = tikh_gsvd(U, X, LAM, MU, d, G, L, 2)
     a = np.log10(rhos[np.argmin(alphas)]**2)
     b = np.log10(etas[np.argmax(alphas)]**2)
 
@@ -404,7 +407,7 @@ def lcorner_mdf_gsvd(
         alpha_init = q[4]
 
     def f(alpha_pre):
-        rho_pre, eta_pre, _ = lcurve_gsvd(
+        rho_pre, eta_pre, _ = tikh_gsvd(
             U, X, LAM, MU, d, G, L, 1, alpha_min=alpha_pre,
             alpha_max=alpha_pre)
         rho_pre = np.asscalar(rho_pre)
@@ -425,73 +428,10 @@ def lcorner_mdf_gsvd(
         change = abs((alpha_next/alpha_pre) - 1.0)
         counter += 1
 
-    rho_c, eta_c, alpha_c = map(np.asscalar, lcurve_gsvd(
+    rho_corner, eta_corner, alpha_corner = map(np.asscalar, tikh_gsvd(
         U, X, LAM, MU, d, G, L, 1, alpha_min=alpha_next, alpha_max=alpha_next))
 
-    return (alpha_c, rho_c, eta_c)
-
-
-def roughmat(n, order, full=True):
-    """
-    1-D differentiating matrix (reffered to as regularization or
-    roughening matrix ``L``).
-
-    This function computes the discrete approximation ``L`` to the
-    derivative operator of order ``order`` on a regular grid with ``n``
-    points, i.e. ``L`` is ``(n - order)-by-n``.
-
-    Parameters
-    ----------
-    n : int
-        Number of data points.
-    order : int, {1, 2}
-        The order of the derivative to approximate.
-    full : bool
-        If True (default), it computes the full matrix. Otherwise it
-        returns a sparse matrix.
-
-    Returns
-    -------
-    L : array-like or :py:class:`scipy.sparse.csr.csr_matrix`
-        The discrete differentiation matrix operator.
-
-    References
-    ----------
-    .. [1] https://en.wikipedia.org/wiki/Sparse_matrix
-       #Compressed_sparse_row_.28CSR.2C_CRS_or_Yale_format.29
-    .. [2] http://netlib.org/linalg/html_templates/node91.html
-    """
-
-    # Zero'th order derivative.
-    if order == 0:
-        return np.identity(n)
-
-    # Let df approximates the first derivative.
-    df = np.insert(np.zeros((1, order-1), dtype=np.float), 0, [-1, 1])
-
-    for i in range(1, order):
-        # Take the difference of the lower order derivative and
-        # itself shifted left to get a derivative one order higher.
-        df = np.insert(df[0:order], 0, 0) - np.append(df[0:order], 0)
-
-    nd = n - order
-    vals = np.tile(df, nd)
-    c = count(start=0, step=(order+1))
-    rowptrs = []
-    colinds = []
-    for i in range(nd):
-        rowptrs.append(c.next())
-        colinds.extend(range(i, i+order+1))
-
-    # By convension, rowptrs[end]=nnz, where nnz is
-    # the number of nonzero values in L.
-    rowptrs.append(len(vals))
-
-    L = csr_matrix((vals, colinds, rowptrs), shape=[nd, n])
-
-    if full:
-        return L.toarray()
-    return L
+    return (alpha_corner, rho_corner, eta_corner)
 
 
 def lcurve_freq(
@@ -558,8 +498,8 @@ def lcurve_freq(
     k2p = np.power(2*np.pi*freqs, 2*order, dtype=np.complex)
 
     # Initialize storage spaces
-    rhos = np.zeros(npoints, dtype=np.float)
-    etas = np.zeros(npoints, dtype=np.float)
+    rhos = np.zeros(npoints, dtype=np.float64)
+    etas = np.zeros(npoints, dtype=np.float64)
 
     for i, alpha in enumerate(alphas):
 
@@ -597,9 +537,9 @@ class UpdateFrequncyModel(object):
             self.ntrans = (2*Gspec.size) - 1
         self.freqs = np.fft.rfftfreq(self.ntrans, d=self.deltat)
         self.ndata = self.xdata.size
-        self.ydata = np.zeros((npoints, self.ndata), dtype=np.float)
-        self.rhos = np.zeros(npoints, dtype=np.float)
-        self.etas = np.zeros(npoints, dtype=np.float)
+        self.ydata = np.zeros((npoints, self.ndata), dtype=np.float64)
+        self.rhos = np.zeros(npoints, dtype=np.float64)
+        self.etas = np.zeros(npoints, dtype=np.float64)
         self.__GHD = np.conj(Gspec) * Dspec
         self.__GHG = np.conj(Gspec) * Gspec
         self.__k2p = np.power(2*np.pi*self.freqs, 2*order)
@@ -641,11 +581,11 @@ class UpdateFrequncyModel(object):
 
 
 __all__ = """
-lcurve_svd
-lcurve_gsvd
-lcorner_kappa
-lcorner_mdf_svd
-lcorner_mdf_gsvd
+tikh_svd
+tikh_gsvd
+corner_maxcurv
+corner_mdf_svd
+corner_mdf_gsvd
 roughmat
 lcurve_freq
 UpdateFrequncyModel

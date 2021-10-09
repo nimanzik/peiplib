@@ -3,11 +3,6 @@ import math
 import numpy as np
 
 
-pi = math.pi
-sin = math.sin
-cos = math.cos
-
-
 def loglinspace(start, stop, num):
     """
     Returns evenly spaced values in logarithmic scale.
@@ -135,46 +130,46 @@ def acorr(x, **kwargs):
     return xcorr(x, x, **kwargs)
 
 
-def shaw(m, n):
+def shaw_problem(m, n):
     """
     This function generates and returns outgoing angles vector `gamma`
-    (see eq. (1.40)), incoming angles vactor `theta` (see eq. (1.41)),
-    and forward operator G (see eq. (1.44)) for Shaw problem.
+    (eq. 1-40), incoming angles vactor `theta` (eq. 1-41), and forward
+    operator G (eq. 1-44) for Shaw problem.
 
     Parameters
     ----------
     m : int
-        Number of data points.
+        Number of data points. `m` must be even.
     n : int
-        Number of model points.
+        Number of model points. `n` must be even.
 
     Returns
     -------
-    gamma : array_like
+    gamma : array-like
         Data vector, `m` equally spaced outgoing angles.
-    theta : array_like
+    theta : array-like
         Model vector, `n` equally spaced incoming angles.
-    G : array_like
-        Operator G, a 2-D array with shape `m-by-n`.
+    G : array-like
+        Operator G, a 2-D array with shape `(m, n)`.
     """
 
-    i = np.arange(1, m+1)
-    gamma = (i-0.5)*pi/m - pi/2
+    i = np.arange(1, m + 1)
+    gamma = (i - 0.5) * math.pi / m - math.pi / 2.0
 
-    j = np.arange(1, n+1)
-    theta = (j-0.5)*pi/n - pi/2
+    j = np.arange(1, n + 1)
+    theta = (j - 0.5) * math.pi / n - math.pi / 2.0
 
-    dtheta = pi/n
+    dtheta = math.pi / n
     G = np.zeros((m, n), dtype=np.float64)
 
     for i in range(m):
         for j in range(n):
             gamma_i = gamma[i]
             theta_j = theta[j]
-            dum1 = cos(gamma_i) + cos(theta_j)
-            dum2 = pi * (sin(gamma_i) + sin(theta_j))
+            dum1 = math.cos(gamma_i) + math.cos(theta_j)
+            dum2 = math.pi * (math.sin(gamma_i) + math.sin(theta_j))
             try:
-                G[i, j] = dum1**2 * (sin(dum2)/dum2)**2 * dtheta
+                G[i, j] = dum1**2 * (math.sin(dum2)/dum2)**2 * dtheta
             except ZeroDivisionError:
                 G[i, j] = dum1**2 * 1.0 * dtheta
 

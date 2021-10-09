@@ -10,7 +10,7 @@ np.set_printoptions(precision=4, suppress=True)
 
 # --- Customizing Matplotlib ---
 plt.style.use('grayscale')
-plt.rc('font', size=20, family='serif', serif=[])
+plt.rc('font', size=16, family='serif', serif=[])
 plt.rc('lines', linewidth=2)
 plt.rc('xtick', direction='in')
 plt.rc('ytick', direction='in')

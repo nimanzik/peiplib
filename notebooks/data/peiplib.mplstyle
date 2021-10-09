@@ -1,0 +1,26 @@
+lines.linewidth: 1.5
+lines.markeredgewidth: 1.5
+lines.markersize: 8
+
+xtick.color: 0.15
+xtick.direction : out
+xtick.major.pad: 3.0
+xtick.major.size: 6.0
+
+ytick.color: 0.15
+ytick.direction : out
+ytick.major.pad: 3.0
+ytick.major.size: 6.0
+
+legend.edgecolor: 0.5
+legend.facecolor: white
+legend.frameon: true
+legend.framealpha: 0.5
+
+figure.facecolor : white
+figure.figsize: 6, 6
+savefig.bbox : tight
+
+axes.labelcolor: 444444
+font.size : 16
+patch.facecolor: 4C72B0

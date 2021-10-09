@@ -1,49 +1,54 @@
 """
 Linear algebra utilities.
 
-Copyright (c) 2017 Nima Nooshiri <nima.nooshiri@gfz-potsdam.de>
+Copyright (c) 2021 Nima Nooshiri (@nimanzik)
 """
+
+from itertools import count
 
 import numpy as np
 from numpy import linalg as nla
 from scipy import linalg as sla
+from scipy.sparse import csr_matrix
 
 
-def solve_svd(U, s, V, d, nkeep=None):
+def svdsolve(G, d, n_keep=None):
     """
     Standard or truncated singular value decomposition (SVD or TSVD)
-    solution.
+    solution for system of equations ``Gm=d``.
 
     Parameters
     ----------
-    U : array_like
-        Matrix of data space basis vectors from the SVD.
-    s : 1-D array
-        Vector of singular values.
-    V : array_like
-        Matrix of model space basis vectors from the SVD.
+    G : array-like
+        Representation of m-by-n system matrix (i.e. forward operator)
     d : array_like
         The data vector.
-    nkeep : int (optional)
+    n_keep : int (optional)
         Maximum number of singular values used (p). If provided,
-        truncates SVD to `nkeep` (TSVD solution).
+        truncates SVD to `n_keep` (TSVD solution). If None (default), all
+        singular values are used to obtain the solution.
 
     Returns
     -------
-    m : array_like
+    m_est : array_like
         The SVD or TSVD solution vector.
     """
-    p = nkeep or s.size
-    Up = U[:, 0:p]
-    Vp = V[:, 0:p]
-    Sp = np.diag(s[0:p])
-    Gdagger = nla.multi_dot([Vp, nla.inv(Sp), Up.T])
-    return np.dot(Gdagger, d)
+    U, s, VT = nla.svd(G, compute_uv=True, full_matrices=True)
+    V = np.transpose(VT)
+    if n_keep is None:
+        n_keep = s.size
+
+    Up = U[:, :n_keep]
+    Vp = V[:, :n_keep]
+    Sp = np.diag(s[0:n_keep])
+    Gdagger = Vp @ nla.inv(Sp) @ Up.T
+    m_est = Gdagger @ d
+    return m_est
 
 
-def solve_tikh(G, L, alpha, d):
+def tikhsolve(G, L, alpha, d):
     """
-    Return Tikhonov regularization solution (using the SVD or GSVD )
+    Return Tikhonov regularization solution (using the SVD or GSVD)
 
     Parameters
     ----------
@@ -58,15 +63,16 @@ def solve_tikh(G, L, alpha, d):
 
     Returns
     -------
-    m : array_like
+    m_est : array_like
         The GSVD solution vector (regularization solution).
     """
-    A = np.dot(G.T, G) + alpha*alpha*np.dot(L.T, L)
-    Ghash = np.dot(nla.inv(A), G.T)
-    return np.dot(Ghash, d)
+    A = G.T @ G + alpha**2 * np.dot(L.T, L)
+    Ghash = nla.inv(A) @ G.T
+    m_est = np.dot(Ghash, d)
+    return m_est
 
 
-def solve_tikh_freqdomain(Gspec, Dspec, deltat, order, alpha):
+def tikhsolve_fd(Gspec, Dspec, deltat, order, alpha):
     """
     Return the solution of Tikhonov regularization in frequency domain.
 
@@ -109,6 +115,68 @@ def solve_tikh_freqdomain(Gspec, Dspec, deltat, order, alpha):
     Mf = np.zeros_like(numer, dtype=np.complex)
     Mf[idx] = numer[idx] / denom[idx]
     return Mf
+
+
+def roughmat(n, order, full=True):
+    """
+    1-D differentiating matrix (reffered to as regularization or
+    roughening matrix ``L``).
+
+    This function computes the discrete approximation ``L`` to the
+    derivative operator of order ``order`` on a regular grid with ``n``
+    points, i.e. ``L`` is ``(n - order)-by-n``.
+
+    Parameters
+    ----------
+    n : int
+        Number of data points.
+    order : int, {1, 2}
+        The order of the derivative to approximate.
+    full : bool
+        If True (default), it computes the full matrix. Otherwise it
+        returns a sparse matrix.
+
+    Returns
+    -------
+    L : array-like or :py:class:`scipy.sparse.csr.csr_matrix`
+        The discrete differentiation matrix operator.
+
+    References
+    ----------
+    .. [1] https://en.wikipedia.org/wiki/Sparse_matrix#Compressed_sparse_row_.28CSR.2C_CRS_or_Yale_format.29   # noqa
+    .. [2] http://netlib.org/linalg/html_templates/node91.html
+    """
+
+    # Zero'th order derivative.
+    if order == 0:
+        return np.identity(n)
+
+    # Let `df` approximates the first derivative.
+    df = np.insert(np.zeros((1, order - 1), dtype=np.float64), 0, [-1, 1])
+
+    for i in range(1, order):
+        # Take the difference of the lower order derivative and
+        # itself shifted left to get a derivative one order higher.
+        df = np.insert(df[:order], 0, 0) - np.append(df[:order], 0)
+
+    nd = n - order
+    vals = np.tile(df, nd)
+    c = count(start=0, step=(order + 1))
+    rowptrs = []
+    colinds = []
+    for i in range(nd):
+        rowptrs.append(next(c))
+        colinds.extend(range(i, i + order + 1))
+
+    # By convension, rowptrs[end]=nnz, where nnz is
+    # the number of nonzero values in L.
+    rowptrs.append(len(vals))
+
+    L = csr_matrix((vals, colinds, rowptrs), shape=[nd, n])
+
+    if full:
+        return L.toarray()
+    return L
 
 
 class MatrixColumnMismatch(Exception):
@@ -350,7 +418,7 @@ def gsvd(A, B, full_matrices=True, compute_all=True):
 
 
 __all__ = """
-solve_svd
-solve_tikh
+svdsolve
+tikhsolve
 gsvd
 """.split()

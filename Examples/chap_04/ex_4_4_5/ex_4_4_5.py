@@ -126,7 +126,7 @@ print('1st-order regularization parameter is:', alpha_tikh1)
 m1 = solve_tikh(G, L1, alpha_tikh1, t)
 
 
-# Plot the first-order recovered model and the true model.
+# Plot the 1st-order recovered model and the true model.
 
 fig3, ax3 = plt.subplots(1, 1)
 ax3.plot(depth, strue*1000.0, '--', label='True model')
@@ -169,7 +169,7 @@ print('2nd-order regularization parameter is:', alpha_tikh2)
 m2 = solve_tikh(G, L2, alpha_tikh2, t)
 
 
-# Plot the first-order recovered model and the true model.
+# Plot the 2nd-order recovered model and the true model.
 
 fig5, ax5 = plt.subplots(1, 1)
 ax5.plot(depth, strue*1000.0, '--', label='True model')

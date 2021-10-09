@@ -10,14 +10,16 @@ by R. Aster, B. Borchers, C. Thurber
 '''
 
 from __future__ import division, print_function
+import sys
 
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 import numpy as np
 from numpy import linalg as la
 
+sys.path.append('../../../peiplib')
 import custompp   # noqa
-from util import get_cbar_axes
+from plot import get_cbar_axes
 
 
 # -----------------------------------------------------------------------------

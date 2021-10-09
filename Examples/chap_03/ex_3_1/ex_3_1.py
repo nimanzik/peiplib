@@ -10,13 +10,15 @@ by R. Aster, B. Borchers, C. Thurber
 '''
 
 from __future__ import division, print_function
+import sys
 
 import matplotlib.pyplot as plt
 import numpy as np
 from numpy import linalg as la
 
+sys.path.append('../../../peiplib')
 import custompp   # noqa
-from util import get_cbar_axes
+from plot import get_cbar_axes
 
 
 # -----------------------------------------------------------------------------
@@ -82,7 +84,7 @@ ax.set_ylabel('i')
 fig0.savefig('c3fv8null.pdf')
 
 
-# --- Display image of null space model V.,8 ---
+# --- Display image of null space model V.,9 ---
 fig1 = plt.figure()
 ax = fig1.add_subplot(111)
 cimg = ax.imshow(m02)
