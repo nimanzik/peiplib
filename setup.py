@@ -23,8 +23,8 @@ setup(
         'Programming Language :: Python :: 2.7',
         'Topic :: Scientific/Engineering'],
     keywords='parameter-estimation inverse-problem inversion',
+    python_requires='>=3.8',
     install_requires=[
-        'python>=3.8',
         'numpy>=1.21.2',
         'scipy>=1.7.1',
         'matplotlib>=3.4.3'],
