@@ -1,2 +1,3 @@
-Parameter Estimation and Inverse Problems (Aster et al., 2nd edition, 2011)
-Examples and Lib
+# peiplib
+
+Python codes and Jupyer notebooks for examples for the 2nd edition of **Parameter Estimation and Inverse Problems** (by R. Aster, B. Borchers, C. Thurber)

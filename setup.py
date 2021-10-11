@@ -9,13 +9,13 @@ def read(fname):
 setup(
     name='peip',
     version='0.0.1',
-    description='PEIP : Parameter Estimation and Inverse Problems '
-                '(Aster et al., 2nd edition, 2011) Examples and Lib',
+    description='peiplib : Python codes and jupyter notebooks for '
+                'examples for the 2nd edition of Parameter Estimation '
+                'and Inverse Problems.',
     long_description=read('README.md'),
-    url='https://gitlab.com/nimanshr/PEIP',
+    url='https://gitlab.com/nimanzik/peiplib',
     author='Nima Nooshiri',
-    author_email='nima.nooshiri@gfz-potsdam.de; '
-                 'nima.nooshiri@gmail.com',
+    author_email='nima.nooshiri@gmail.com',
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Science/Research',
@@ -24,7 +24,9 @@ setup(
         'Topic :: Scientific/Engineering'],
     keywords='parameter-estimation inverse-problem inversion',
     install_requires=[
-        'numpy>=1.13.1',
-        'scipy>=0.19.1'],
+        'python>=3.8',
+        'numpy>=1.21.2',
+        'scipy>=1.7.1',
+        'matplotlib>=3.4.3'],
     packages=['peiplib'],
     package_dir={'peiplib': 'peiplib'})

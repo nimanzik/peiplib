@@ -5,3 +5,5 @@
 build/
 dist/
 peip.egg-info/
+
+.ipynb_checkpoints
