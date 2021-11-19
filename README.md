@@ -2,8 +2,8 @@
 
 ![](https://img.shields.io/badge/licence-GPL--3.0-orange)
 
-<p style="width:20%; float:right; padding-left: 50px;">
-    <img src="./images/book_cover.png">
+<p style="width:15%; float:right; padding-left: 50px;">
+    <img src="./images/book_cover.png" width="15%">
 </p>
 
 Implementing library and examples for the 3rd edition of **Parameter
