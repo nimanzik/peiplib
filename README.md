@@ -7,7 +7,7 @@ Estimation and Inverse Problems** (by R. Aster, B. Borchers, C. Thurber)
 into Python.
 
 The book provides codes and associated data in MATLAB to implement
-examples. This project, however, implements the same stuff into Python,
+examples. This project, however, implements the same stuff into Python.
 In this repository, the examples are illustrated using Jupyter
 Nootebooks. `peiplib` is an installable library, and NumPy-style
 docstrings is used to documnet functions, classes etc.
