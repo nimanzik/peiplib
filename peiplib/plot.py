@@ -1,3 +1,9 @@
+"""
+Plotting utilities.
+
+Copyright (c) 2021 Nima Nooshiri (@nimanzik)
+"""
+
 import math
 
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -5,72 +11,72 @@ import numpy as np
 
 
 deep_hex = {
-    'butter':     '#CCB974',
-    'chameleon':  '#55A868',
-    'plum':       '#8172B2',
+    'butter': '#CCB974',
+    'chameleon': '#55A868',
+    'plum': '#8172B2',
     'scarletred': '#C44E52',
-    'skyblue1':   '#64B5CD',
-    'skyblue2':   '#4C72B0', }
+    'skyblue1': '#64B5CD',
+    'skyblue2': '#4C72B0', }
 
 
 tango_hex = {
-    'butter1':     '#fce94f',
-    'butter2':     '#edd400',
-    'butter3':     '#c4a000',
-    'chameleon1':  '#8ae234',
-    'chameleon2':  '#73d216',
-    'chameleon3':  '#4e9a06',
-    'orange1':     '#fcaf3e',
-    'orange2':     '#f57900',
-    'orange3':     '#ce5c00',
-    'skyblue1':    '#729fcf',
-    'skyblue2':    '#3465a4',
-    'skyblue3':    '#204a87',
-    'plum1':       '#ad7fa8',
-    'plum2':       '#75507b',
-    'plum3':       '#5c3566',
-    'chocolate1':  '#e9b96e',
-    'chocolate2':  '#c17d11',
-    'chocolate3':  '#8f5902',
+    'butter1': '#fce94f',
+    'butter2': '#edd400',
+    'butter3': '#c4a000',
+    'chameleon1': '#8ae234',
+    'chameleon2': '#73d216',
+    'chameleon3': '#4e9a06',
+    'orange1': '#fcaf3e',
+    'orange2': '#f57900',
+    'orange3': '#ce5c00',
+    'skyblue1': '#729fcf',
+    'skyblue2': '#3465a4',
+    'skyblue3': '#204a87',
+    'plum1': '#ad7fa8',
+    'plum2': '#75507b',
+    'plum3': '#5c3566',
+    'chocolate1': '#e9b96e',
+    'chocolate2': '#c17d11',
+    'chocolate3': '#8f5902',
     'scarletred1': '#ef2929',
     'scarletred2': '#cc0000',
     'scarletred3': '#a40000',
-    'aluminium1':  '#eeeeec',
-    'aluminium2':  '#d3d7cf',
-    'aluminium3':  '#babdb6',
-    'aluminium4':  '#888a85',
-    'aluminium5':  '#555753',
-    'aluminium6':  '#2e3436', }
+    'aluminium1': '#eeeeec',
+    'aluminium2': '#d3d7cf',
+    'aluminium3': '#babdb6',
+    'aluminium4': '#888a85',
+    'aluminium5': '#555753',
+    'aluminium6': '#2e3436', }
 
 
 tango_RGB = {
-    'butter1':     (252, 233,  79),
-    'butter2':     (237, 212,   0),
-    'butter3':     (196, 160,   0),
-    'chameleon1':  (138, 226,  52),
-    'chameleon2':  (115, 210,  22),
-    'chameleon3':  (78,  154,   6),
-    'orange1':     (252, 175,  62),
-    'orange2':     (245, 121,   0),
-    'orange3':     (206,  92,   0),
-    'skyblue1':    (114, 159, 207),
-    'skyblue2':    (52,  101, 164),
-    'skyblue3':    (32,   74, 135),
-    'plum1':       (173, 127, 168),
-    'plum2':       (117,  80, 123),
-    'plum3':       (92,  53, 102),
-    'chocolate1':  (233, 185, 110),
-    'chocolate2':  (193, 125,  17),
-    'chocolate3':  (143,  89,   2),
-    'scarletred1': (239,  41,  41),
-    'scarletred2': (204,   0,   0),
-    'scarletred3': (164,   0,   0),
-    'aluminium1':  (238, 238, 236),
-    'aluminium2':  (211, 215, 207),
-    'aluminium3':  (186, 189, 182),
-    'aluminium4':  (136, 138, 133),
-    'aluminium5':  (85,   87,  83),
-    'aluminium6':  (46,   52,  54), }
+    'butter1': (252, 233, 79),
+    'butter2': (237, 212, 0),
+    'butter3': (196, 160, 0),
+    'chameleon1': (138, 226, 52),
+    'chameleon2': (115, 210, 22),
+    'chameleon3': (78, 154, 6),
+    'orange1': (252, 175, 62),
+    'orange2': (245, 121, 0),
+    'orange3': (206, 92, 0),
+    'skyblue1': (114, 159, 207),
+    'skyblue2': (52, 101, 164),
+    'skyblue3': (32, 74, 135),
+    'plum1': (173, 127, 168),
+    'plum2': (117, 80, 123),
+    'plum3': (92, 53, 102),
+    'chocolate1': (233, 185, 110),
+    'chocolate2': (193, 125, 17),
+    'chocolate3': (143, 89, 2),
+    'scarletred1': (239, 41, 41),
+    'scarletred2': (204, 0, 0),
+    'scarletred3': (164, 0, 0),
+    'aluminium1': (238, 238, 236),
+    'aluminium2': (211, 215, 207),
+    'aluminium3': (186, 189, 182),
+    'aluminium4': (136, 138, 133),
+    'aluminium5': (85, 87, 83),
+    'aluminium6': (46, 52, 54), }
 
 
 def to01(c):
@@ -232,13 +238,13 @@ def picard(U, s, d, ax):
 
 
 __all__ = """
-deep_hex
-tango_hex
-tango_RGB
-to01
-tohex
-nice_sci_notation
-get_cbar_axes
-lcurve
-picard
+    deep_hex
+    tango_hex
+    tango_RGB
+    to01
+    tohex
+    nice_sci_notation
+    get_cbar_axes
+    lcurve
+    picard
 """.split()

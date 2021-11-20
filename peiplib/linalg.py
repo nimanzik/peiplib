@@ -7,114 +7,8 @@ Copyright (c) 2021 Nima Nooshiri (@nimanzik)
 from itertools import count
 
 import numpy as np
-from numpy import linalg as nla
 from scipy import linalg as sla
 from scipy.sparse import csr_matrix
-
-
-def svdsolve(G, d, n_keep=None):
-    """
-    Standard or truncated singular value decomposition (SVD or TSVD)
-    solution for system of equations ``Gm=d``.
-
-    Parameters
-    ----------
-    G : array-like
-        Representation of m-by-n system matrix (i.e. forward operator)
-    d : array_like
-        The data vector.
-    n_keep : int (optional)
-        Maximum number of singular values used (p). If provided,
-        truncates SVD to `n_keep` (TSVD solution). If None (default), all
-        singular values are used to obtain the solution.
-
-    Returns
-    -------
-    m_est : array_like
-        The SVD or TSVD solution vector.
-    """
-    U, s, VT = nla.svd(G, compute_uv=True, full_matrices=True)
-    V = np.transpose(VT)
-    if n_keep is None:
-        n_keep = s.size
-
-    Up = U[:, :n_keep]
-    Vp = V[:, :n_keep]
-    Sp = np.diag(s[0:n_keep])
-    Gdagger = Vp @ nla.inv(Sp) @ Up.T
-    m_est = Gdagger @ d
-    return m_est
-
-
-def tikhsolve(G, L, alpha, d):
-    """
-    Return Tikhonov regularization solution (using the SVD or GSVD)
-
-    Parameters
-    ----------
-    G : array_like
-        The system matrix (forward operator or design matrix).
-    L : array_like
-        The roughening matrix.
-    alpha : float
-        The reqularization parameter.
-    d : array_like
-        The data vector.
-
-    Returns
-    -------
-    m_est : array_like
-        The GSVD solution vector (regularization solution).
-    """
-    A = G.T @ G + alpha**2 * np.dot(L.T, L)
-    Ghash = nla.inv(A) @ G.T
-    m_est = np.dot(Ghash, d)
-    return m_est
-
-
-def tikhsolve_fd(Gspec, Dspec, deltat, order, alpha):
-    """
-    Return the solution of Tikhonov regularization in frequency domain.
-
-    Parameters
-    ----------
-    Gspec : array-like of length N
-        Discrete Fourier transform of the real-valued array of the
-        sampled impulse response **g**, i.e ``Gspec=np.fft.rfft(g)``.
-
-    Dspec : array-like of length N
-        Discrete Fourier transform of the real-valued array of the data
-        vector **d**, i.e. ``Dspec=np.fft.rfft(d)``.
-
-    deltat : float
-        Sampling interval in time/spatial domain.
-
-    order : int, {0, 1, 2}
-        The order of the derivative to approximate.
-
-    alpha : float
-        The reqularization parameter.
-
-    Returns
-    -------
-    Mf : array_like
-        The model spectrum (regularization solution).
-    """
-    N = Gspec.size
-    if N % 2 == 0:
-        ntrans = 2 * (N-1)
-    else:
-        ntrans = (2*N) - 1
-
-    freqs = np.fft.rfftfreq(ntrans, d=deltat)
-    k2p = np.power(2*np.pi*freqs, 2*order, dtype=np.complex)
-
-    numer = np.conj(Gspec) * Dspec
-    denom = np.conj(Gspec) * Gspec + np.full_like(numer, alpha*alpha*k2p)
-    idx = np.where((np.abs(numer) != 0) & (np.abs(denom) != 0))
-    Mf = np.zeros_like(numer, dtype=np.complex)
-    Mf[idx] = numer[idx] / denom[idx]
-    return Mf
 
 
 def roughmat(n, order, full=True):
@@ -417,8 +311,4 @@ def gsvd(A, B, full_matrices=True, compute_all=True):
         return sigma
 
 
-__all__ = """
-svdsolve
-tikhsolve
-gsvd
-""".split()
+__all__ = ['roughmat', 'gsvd']

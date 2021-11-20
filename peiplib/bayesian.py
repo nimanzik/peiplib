@@ -1,3 +1,7 @@
+"""
+Copyright (c) 2021 Nima Nooshiri (@nimanzik)
+"""
+
 import numpy as np
 from numpy import linalg as nla
 from scipy import linalg as sla

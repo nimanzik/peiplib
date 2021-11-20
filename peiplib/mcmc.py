@@ -1,7 +1,7 @@
 """
 Markov Chain Monte Carlo
 
-Copyright (c) 2018 Nima Nooshiri <nima.nooshiri@gfz-potsdam.de>
+Copyright (c) 2021 Nima Nooshiri (@nimanzik)
 """
 
 import numpy as np
@@ -284,7 +284,7 @@ def eval_logpdf(x):
 
 
 __all__ = """
-metropolis_hastings
-randomwalk_metropolis_hastings
-eval_logpdf
+    metropolis_hastings
+    randomwalk_metropolis_hastings
+    eval_logpdf
 """.split()

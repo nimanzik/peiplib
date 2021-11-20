@@ -581,12 +581,11 @@ class UpdateFrequncyModel(object):
 
 
 __all__ = """
-tikh_svd
-tikh_gsvd
-corner_maxcurv
-corner_mdf_svd
-corner_mdf_gsvd
-roughmat
-lcurve_freq
-UpdateFrequncyModel
+    tikh_svd
+    tikh_gsvd
+    corner_maxcurv
+    corner_mdf_svd
+    corner_mdf_gsvd
+    lcurve_freq
+    UpdateFrequncyModel
 """.split()
