@@ -15,7 +15,47 @@ def loglinspace(start, stop, num):
     interval.
     """
     return np.logspace(
-        np.log10(start), np.log10(stop), num=num, endpoint=True, base=10.)
+        np.log10(start), np.log10(stop), num=num, endpoint=True, base=10.0)
+
+
+def arange_nonint_step(vmin, vmax, deltav, endpoint=True, retnum=False):
+    """
+    Return evenly spaced values within a given interval with a
+    non-integer step (decimal spacing between values).
+
+    Parameters
+    ----------
+    vmin : int or float
+        The starting value of the sequence.
+    vmax : int or float
+        The end value of the sequence, unless `endpoint` is set to False.
+    deltav : float
+        Spacing between values.
+    endpoint : bool, optional
+        If True, `vmax` is the last sample. Otherwise, it is not
+        included. Default is True.
+    retnum : bool, optional
+        If True, return number of samples generated.
+
+    Returns
+    -------
+    samples : ndarray, shape of (n_samples,)
+        There are equally spaced samples in the closed interval
+        [`start`, `stop`] or the half-open interval [`start`, `stop`)
+        (depending on whether `endpoint` is True or False).
+    num : int
+        Only returned if `retnum` is True.
+        Number of samples generated.
+    """
+    start = round(vmin / deltav) * deltav
+    stop = round(vmax / deltav) * deltav
+    num = int(round((stop - start) / deltav)) + 1
+    y = np.linspace(start, stop, num, endpoint=endpoint, axis=-1)
+
+    if retnum:
+        return (y, num)
+
+    return y
 
 
 def nextpow2(x):
