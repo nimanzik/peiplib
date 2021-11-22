@@ -1,7 +1,7 @@
 # peiplib
 
-![](https://img.shields.io/badge/licence-GPL--3.0-orange)
-![](https://img.shields.io/badge/python->=3.6-blue)
+[![](https://img.shields.io/badge/licence-GPL--3.0-orange)](LICENSE)
+![](https://img.shields.io/badge/python->=3.6-blue)(https://www.python.org/)
 
 <p style="width:15%; float:right; padding-left: 50px;">
     <img src="./images/book_cover.jpg" width="15%">
